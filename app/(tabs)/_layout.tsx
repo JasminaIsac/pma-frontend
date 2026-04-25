@@ -50,19 +50,18 @@ export default function TabsLayout(): React.ReactElement {
           headerShown: false,
         }}
       />
-      {canViewUsersTab && (
-        <Tabs.Screen
-          name="(users)"
-          options={{
-            title: "Team",
-            tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-              <Ionicons name="people-outline" size={size} color={color} />
-            ),
-            href: canViewUsersTab ? "/(tabs)/(users)" : undefined,
-            headerShown: false,
-          }}
-        />
-      )}
+      
+      <Tabs.Screen
+        name="(users)"
+        options={{
+          title: "Users",
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+          href: canViewUsersTab ? "/(tabs)/(users)" : null,
+        }}
+      />
       
       <Tabs.Screen
         name="(profile)"

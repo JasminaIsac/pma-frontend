@@ -1,6 +1,5 @@
-import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Tag from '../ui/Tag';
+import { Tag } from '../ui/';
 import { colors, textPresets } from '@theme/index';
 import { Ionicons } from '@expo/vector-icons';
 import { getStatusTagData, formatDate } from '@utils/index';

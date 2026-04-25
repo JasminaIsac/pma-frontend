@@ -5,3 +5,8 @@ export * from './MessagesList';
 export * from './ReadStatus';
 export * from './ConversationCard';
 export * from './UserCardConversation';
+export * from './AttachmentPreview';
+export * from './AttachmentList';
+export * from './MentionText';
+export * from './MentionDropdown';
+export * from './GroupAvatar';

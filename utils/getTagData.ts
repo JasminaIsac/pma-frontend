@@ -1,6 +1,5 @@
 import { colors } from '@theme/colors';
 import { TaskPriority } from 'schemas';
-import { formatEnum } from './enumsHelpers';
 
 interface TagData {
   title: string;

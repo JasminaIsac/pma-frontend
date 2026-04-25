@@ -11,7 +11,7 @@ export const TodayProgress = () => {
   const router = useRouter();
   const { todayTasks, percentage } = useTodayTasks();
   const { title, subtitle } = getMotivationalMessage( percentage, todayTasks.length > 0 );
-  const handleNavigate = (): void => router.push('/(tabs)/(tasks)');
+  const handleNavigate = (): void => router.push('/(tabs)/(dashboard)/(tasks)');
 
   return (
     <LinearGradient

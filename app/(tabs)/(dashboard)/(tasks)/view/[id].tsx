@@ -1,8 +1,8 @@
-import React  from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useLayoutEffect }  from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { CustomButton, LoadingIndicator, Tag, MetaRow } from '@components/index';
 import { textPresets, colors } from '@theme/index';
 import { getPriorityTagData, getStatusTagData, formatDate, formatDateWithSuffix } from '@utils/index';
@@ -17,6 +17,7 @@ const ViewTaskScreen: React.FC = () => {
   const params = useLocalSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter(); 
+  const navigation = useNavigation();
 
   const { data: user, isLoading: loadingUser } = useMe();
   const { data: task, isLoading: loadingTask } = useTask(id!);
@@ -25,6 +26,17 @@ const ViewTaskScreen: React.FC = () => {
   const { mutate: updateStatus, isPending } = useUpdateTask();
 
   const { showSuccess, showError } = useToastNotification();
+
+  useLayoutEffect(() => {
+    if (!task || user?.role === UserRole.DEVELOPER) return;
+    navigation.setOptions({
+      headerRight: () => (    
+        <TouchableOpacity onPress={() => router.push(`/(tasks)/edit/${task.id}`)} >
+          <Ionicons name="pencil" size={22} color={colors.darkBlue} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, task?.id, user?.role, router]);
 
   const handleTaskStatusChange = (newStatus: TaskStatus) => {
     if (!task) return;
@@ -180,7 +192,7 @@ const ViewTaskScreen: React.FC = () => {
                     title={`Mark as ${opt.label}`}
                     onPress={() => handleTaskStatusChange(opt.value)}
                     disabled={isPending}
-                    style={opt.color ? { backgroundColor: opt.color } : {}}
+                    style={[opt.color ? { backgroundColor: opt.color } : {}, styles.actionButton]}
                   />
                 ))}
                 
@@ -244,7 +256,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     marginTop: 20,
   },
   meta: {
@@ -254,7 +266,10 @@ const styles = StyleSheet.create({
   noDescription: {
     fontSize: 16,
     color: colors.text.disabled,
-  }
+  },
+  actionButton: {
+    width: '48%',
+  },
 });
 
 export default ViewTaskScreen;

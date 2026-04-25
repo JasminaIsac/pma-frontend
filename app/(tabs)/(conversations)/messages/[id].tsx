@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
-import { View, FlatList, ActivityIndicator, Text, StyleSheet, KeyboardAvoidingView, TouchableOpacity } from "react-native";
+import { View, FlatList, ActivityIndicator, Text, Image, StyleSheet, KeyboardAvoidingView, TouchableOpacity } from "react-native";
 import { colors, textPresets } from "@theme/index";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useMe } from "@hooks/queries/useMe";
@@ -134,22 +134,28 @@ const MessagesScreen: React.FC<Props> = () => {
     }
   };
 
-  const sendMessageViaSocket = (text: string) => {
+  const sendMessageViaSocket = (
+    text: string,
+    attachmentIds: string[],
+    mentionsData: string | null,
+  ) => {
     if (!socket || !user) return;
 
-    const payload = {
+    const payload: Record<string, any> = {
       conversationId,
       senderId: user.id,
       message: text,
     };
 
-    socket.emit('send_message', payload, (response: any) => {
-      // if (response?.status === 'ok') {
-      //   // Opțional: update local dacă vrei feedback instant
-      //   // setMessages(prev => [response.message, ...prev]);
-      //   console.log('Message sent successfully:', response.message);
-      // }
-    });
+    if (attachmentIds.length > 0) {
+      payload.attachmentIds = attachmentIds;
+    }
+
+    if (mentionsData) {
+      payload.mentionsData = mentionsData;
+    }
+
+    socket.emit('send_message', payload);
   };
 
   // Funcția pentru Pull-to-Refresh
@@ -186,24 +192,44 @@ const MessagesScreen: React.FC<Props> = () => {
     const otherParticipantUser = otherParticipants[0]?.user;
     const title = isGroup ? conversation?.name : otherParticipantUser?.name;
 
+    const handleHeaderPress = () => {
+      if (isGroup) {
+        router.push(`/(tabs)/(conversations)/settings/${conversationId}` as any);
+      } else if (otherParticipantUser?.id) {
+        router.push({ pathname: '/(tabs)/(conversations)/user/[id]', params: { id: otherParticipantUser.id } } as any);
+      }
+    };
+
     navigation.setOptions({
       headerTitle: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center' }}
+          onPress={handleHeaderPress}
+          activeOpacity={0.75}
+        >
+          {isGroup && conversation?.coverUrl ? (
+            <Image
+              source={{ uri: conversation.coverUrl }}
+              style={{ width: 36, height: 36, borderRadius: 18 }}
+            />
+          ) : (
             <MemberAvatarsList members={otherParticipants} />
-            <View style={{ alignItems: 'flex-start', marginLeft: 10 }} >
-              <Text style={[textPresets.headerMedium, { color: colors.text.primary, marginBottom: 1 }]}>
-                {title || "Loading messages..."}
-              </Text>
-              {conversation && !isGroup && (
-                <Text style={{ fontSize: 10, color: "#009a28"}}>{formatEnum(otherParticipantUser?.status)}</Text>
-              )}
-            </View>
+          )}
+          <View style={{ alignItems: 'flex-start', marginLeft: 10 }}>
+            <Text style={[textPresets.headerMedium, { color: colors.text.primary, marginBottom: 1 }]}>
+              {title || "Loading messages..."}
+            </Text>
+            {conversation && !isGroup && (
+              <Text style={{ fontSize: 10, color: "#009a28" }}>{formatEnum(otherParticipantUser?.status)}</Text>
+            )}
           </View>
-        </View>
+        </TouchableOpacity>
       ),
       headerRight: () => (
-        <TouchableOpacity style={{ marginRight: 15 }} onPress={() => router.push(`/settings/${conversationId}`)}>
+        <TouchableOpacity
+          style={{ marginRight: 15 }}
+          onPress={() => router.push(`/(tabs)/(conversations)/settings/${conversationId}` as any)}
+        >
           <Ionicons name="ellipsis-vertical" size={20} color={colors.text.primary} />
         </TouchableOpacity>
       ),
@@ -239,7 +265,11 @@ const MessagesScreen: React.FC<Props> = () => {
             
             return (
               <View style={{ marginBottom: index === 0 ? 10 : 2 }}>
-                <MessageBubble message={item} isOwn={isOwn} />
+                <MessageBubble
+                  message={item}
+                  isOwn={isOwn}
+                  onAvatarPress={(userId) => router.push({ pathname: '/(tabs)/(conversations)/user/[id]', params: { id: userId } } as any)}
+                />
                 {index === 0 && isOwn && (
                   <ReadStatus 
                     message={item}

@@ -5,6 +5,7 @@ import { colors, textPresets } from "@theme/index";
 import { Conversation } from "schemas";
 import { formatRelativeDate } from "@utils/dateHelpers";
 import { MemberAvatar } from "../users/MemberAvatar";
+import { formatMentionPreview } from "./MentionText";
 
 interface ConversationCardProps {
   conversation: Conversation;
@@ -38,9 +39,9 @@ export const ConversationCard = ({ conversation, currentUserId }: ConversationCa
     <View style={styles.shadowContainer}>
       <TouchableOpacity style={styles.cardInner} onPress={onPress}>
         <View style={styles.avatarContainer}>
-          <MemberAvatar 
-            member={(isGroup ? { name: conversationName, avatarUrl: null } : otherParticipant) || { name: '?', avatarUrl: null }} 
-            size={55} 
+          <MemberAvatar
+            member={(isGroup ? { name: conversationName, avatarUrl: conversation.coverUrl ?? null } : otherParticipant) || { name: '?', avatarUrl: null }}
+            size={55}
           />
         </View>
 
@@ -74,8 +75,8 @@ export const ConversationCard = ({ conversation, currentUserId }: ConversationCa
               ]} 
               numberOfLines={1}
             >
-              {lastMessage 
-                ? `${(lastMessage.senderId || lastMessage.sender?.id) === currentUserId ? 'Tu: ' : ''}${lastMessage.message}`
+              {lastMessage
+                ? `${(lastMessage.senderId || lastMessage.sender?.id) === currentUserId ? 'You: ' : ''}${formatMentionPreview(lastMessage.message, lastMessage.mentions ?? [])}`
                 : ""}
             </Text>
             

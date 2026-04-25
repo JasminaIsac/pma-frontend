@@ -75,9 +75,9 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         onClose();
       } else {
         if (response.status === 401) {
-          setError('oldPassword', { type: 'manual', message: 'Incorrect old password' });
+          setApiError('Incorrect old password');
         } else if (response.status === 400) {
-          setError('newPassword', { type: 'manual', message: response.message || 'Invalid new password' });
+          setApiError('New password should be different from old password');
         } else {
           setApiError(response.message || 'Unexpected error');
         }

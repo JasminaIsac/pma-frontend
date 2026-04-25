@@ -19,12 +19,18 @@ interface GroupNameModalProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (name: string) => void;
+  initialName?: string;
+  title?: string;
+  submitLabel?: string;
 }
 
 export const GroupNameModal: React.FC<GroupNameModalProps> = ({
   visible,
   onClose,
   onSubmit,
+  initialName = '',
+  title = 'Create Group',
+  submitLabel = 'Create',
 }) => {
   const {
     control,
@@ -34,15 +40,15 @@ export const GroupNameModal: React.FC<GroupNameModalProps> = ({
   } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: {
-      name: '',
+      name: initialName,
     },
   });
 
   useEffect(() => {
     if (visible) {
-      reset({ name: '' });
+      reset({ name: initialName });
     }
-  }, [visible, reset]);
+  }, [visible, initialName, reset]);
 
   const handleSave = (data: GroupFormValues) => {
     onSubmit(data.name);
@@ -58,7 +64,7 @@ export const GroupNameModal: React.FC<GroupNameModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <Text style={[textPresets.headerLarge, { marginBottom: 15 }]}>
-            Create Group
+            {title}
           </Text>
 
           <CustomInput
@@ -78,7 +84,7 @@ export const GroupNameModal: React.FC<GroupNameModalProps> = ({
               />
             ) : (
               <CustomButton
-                title="Create"
+                title={submitLabel}
                 onPress={handleSubmit(handleSave)}
                 style={{ width: '48%' }}
                 disabled={isSubmitting}

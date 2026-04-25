@@ -13,7 +13,7 @@ import { useAddTask } from '@hooks/queries/useTasks';
 import useToastNotification from '@hooks/useToastNotification';
 
 const taskSchema = z.object({
-  name: z.string().min(1, 'Task title is required'),
+  name: z.string().min(3, 'Task title must be at least 3 characters'),
   description: z.string().optional(),
   priority: z.nativeEnum(TaskPriority),
   projectId: z.string().min(1, 'Project is required'),
@@ -67,7 +67,7 @@ const AddTaskScreen: React.FC = () => {
 
           if (defaultProjectId) {
             router.replace({
-              pathname: '/(tabs)/(projects)/view/[id]',
+              pathname: '/(tabs)/(dashboard)/view/[id]',
               params: { id: defaultProjectId }
             });
           } else {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useProjectsCursor } from '@hooks/queries/useProjects';
 import { colors, textPresets } from '@theme/index';
 import { LoadingIndicator, ProjectsList, TodayProgress } from '@components/index';
@@ -8,6 +9,7 @@ import { Project } from 'schemas';
 export default function Dashboard(): React.ReactElement {
   const { data, isLoading, isError } = useProjectsCursor(5);
   const [projects, setProjects] = useState<Project[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     if (data) {
@@ -34,7 +36,10 @@ export default function Dashboard(): React.ReactElement {
       <Text style={[textPresets.headerLarge, { paddingLeft: 8, marginBottom: 12 }]}>
         Continue with your projects:
       </Text>
-      <ProjectsList projects={projects} />
+      <ProjectsList
+        projects={projects}
+        onPress={(p) => router.push({ pathname: '/(tabs)/(dashboard)/view/[id]', params: { id: p.id } })}
+      />
     </View>
   );
 }

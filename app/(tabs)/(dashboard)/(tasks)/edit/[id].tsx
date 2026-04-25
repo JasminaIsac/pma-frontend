@@ -28,11 +28,13 @@ const EditTaskScreen: React.FC = () => {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
   const { showSuccess, showError } = useToastNotification()
-  
-  const { data: task, isLoading: loadingTask } = useTask(id!);
-  const { data: project } = useProject(task?.projectId!);
-  const { data: availableDevs, isLoading:loadingDevs} = useAvailableProjectUsers(project?.id!);
-  const availableDevelopers = useMemo(() => availableDevs?.filter(dev => dev.role === UserRole.DEVELOPER), [availableDevs]);
+
+  const { data: task, isLoading: loadingTask, isError: taskError } = useTask(id || "");
+  const { data: project, isError: projectError } = useProject(task?.projectId || "");
+  const { data: availableDevs, isLoading:loadingDevs } = useAvailableProjectUsers(project?.id || "");
+  const availableDevelopers = useMemo(() => {
+    return availableDevs?.filter(dev => dev.role === UserRole.DEVELOPER) || [];
+  }, [availableDevs]);
 
   const { mutate: updateTaskMutate, isPending: updating } = useUpdateTask();
   const { mutate: deleteTaskMutate, isPending: deleting } = useDeleteTask();
@@ -62,6 +64,20 @@ const EditTaskScreen: React.FC = () => {
     }
   }, [task, reset]);
 
+  // Handle errors with useEffect to avoid side effects in render
+  useEffect(() => {
+    if (taskError) {
+      showError("Error", "Failed to load task");
+      router.back();
+    }
+  }, [taskError, showError, router]);
+
+  useEffect(() => {
+    if (projectError) {
+      showError("Error", "Failed to load project details");
+    }
+  }, [projectError, showError]);
+
 
   const onSave = async (data: TaskFormValues) => {
     if (!task) return;
@@ -88,7 +104,7 @@ const EditTaskScreen: React.FC = () => {
           deleteTaskMutate(task.id, {
             onSuccess: () => {
               showSuccess("Deleted", "Task deleted successfully");
-              router.push(`/projects/view/${task.projectId}`);
+              router.replace({ pathname: '/(tabs)/(dashboard)/view/[id]', params: { id: task.projectId } });
             },
             onError: () => showError("Error", "Failed to delete task"),
           });
@@ -97,10 +113,14 @@ const EditTaskScreen: React.FC = () => {
     ]);
   };
 
-  if(!task) return null;
-
+  // Check loading states FIRST
   if (loadingTask || loadingDevs) {
     return <LoadingIndicator />
+  }
+
+  // Check if task exists AFTER loading
+  if (!task) {
+    return null;
   }
 
   return (

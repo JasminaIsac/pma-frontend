@@ -67,7 +67,7 @@ export default function AddProjectScreen() {
     try {
       const project = await mutateAsync(payload);
       showSuccess('Project Created', 'Your project has been created successfully!');
-      router.push(`/(projects)/view/${project.id}`);
+      router.push({ pathname: '/(tabs)/(projects)/view/[id]', params: { id: project.id } });
     } catch (err) {
       showError('Error', 'Failed to create project');
     }

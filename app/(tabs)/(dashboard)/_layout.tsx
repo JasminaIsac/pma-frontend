@@ -27,6 +27,7 @@ export default function TaskStack() {
         name="(tasks)"
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="view/[id]" options={{ title: "Project Details" }} />
     </Stack>
   );
 }

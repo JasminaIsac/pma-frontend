@@ -11,6 +11,7 @@ interface ProjectsListProps {
   projects: Project[];
   onEndReached?: () => void;
   isFetchingNextPage?: boolean;
+  onPress?: (project: Project) => void;
 }
 
 export const ProjectsList: React.FC<ProjectsListProps> = ({
@@ -18,6 +19,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
   projects,
   onEndReached,
   isFetchingNextPage,
+  onPress,
 }) => {
   const router = useRouter();
 
@@ -49,7 +51,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
         <ProjectCard
           item={item}
           isCompleted={item.status === ProjectStatus.COMPLETED}
-          onPress={() => router.push({ pathname: "/(tabs)/(projects)/view/[id]", params: { id: item.id }})}
+          onPress={() => onPress ? onPress(item) : router.push({ pathname: "/(tabs)/(projects)/view/[id]", params: { id: item.id } })}
         />
       )}
       onEndReached={onEndReached}

@@ -6,6 +6,8 @@ export interface Conversation {
   id: ID;
   name: string;
   type: ConversationType;
+  adminId?: ID | null;
+  coverUrl?: string | null;
   participants: ConversationParticipant[];
   messages?: Message[];
   lastMessage?: Message;

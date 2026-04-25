@@ -81,7 +81,7 @@ const EditUserScreen = () => {
           deleteUserMutate(user.id, {
             onSuccess: () => {
               showSuccess('Deleted', 'User deleted successfully');
-              router.push('/tabs/users');
+              router.replace('/(tabs)/(users)');
             },
             onError: () => showError('Error', 'Failed to delete user'),
           });

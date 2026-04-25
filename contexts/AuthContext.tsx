@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const storedToken = await SecureStore.getItemAsync('authToken');
       if (storedToken) {
         const decoded = jwtDecode<JwtPayload>(storedToken);
-        console.log('AUTH CONTEXT: jwt decoded - ',storedToken);
+        // console.log('AUTH CONTEXT: jwt decoded - ',storedToken);
         setToken(storedToken);
         setUserId(decoded.userId);
       }

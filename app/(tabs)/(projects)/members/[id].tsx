@@ -70,7 +70,7 @@ export default function ProjectMemberScreen(): React.ReactElement {
       {canEdit && <AddMemberForm projectId={projectId as ID}/> }
       <FlatList
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ marginBottom: 40 }}
         data={membersWithCounts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -88,7 +88,8 @@ export default function ProjectMemberScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     backgroundColor: colors.background.primary,
     flex: 1,
   },

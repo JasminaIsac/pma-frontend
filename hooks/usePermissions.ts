@@ -31,7 +31,7 @@ export function useCameraPermission() {
 // --- Media Library Permission ---
 export function useMediaLibraryPermission() {
   const requestLibrary = useCallback(async (): Promise<PermissionRequestResult> => {
-    let status: ImagePicker.PermissionStatus = ImagePicker.PermissionStatus.GRANTED;;
+    let status: ImagePicker.PermissionStatus = ImagePicker.PermissionStatus.GRANTED;
 
     if (Platform.OS === 'android' && Platform.Version >= 33) {
       const res = await ImagePicker.requestMediaLibraryPermissionsAsync();

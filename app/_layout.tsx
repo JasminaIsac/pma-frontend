@@ -6,6 +6,20 @@ import { AuthProvider, NotificationProvider, useAuth } from '@contexts/index';
 import { useMe } from '@hooks/queries/useMe';
 import { LoadingIndicator} from '@components/index';
 
+// Suppress Reanimated 4 deprecation warning
+if (__DEV__) {
+  const originalWarn = console.warn;
+  console.warn = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('createAnimatedPropAdapter')
+    ) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
+
 const NavigationGuard = () => {
   const { token, loading: authLoading } = useAuth();
   const { data: user, isLoading: queryLoading, isFetched } = useMe();

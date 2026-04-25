@@ -1,5 +1,16 @@
 import { useQuery, useQueryClient, useInfiniteQuery, useMutation } from '@tanstack/react-query';
-import { getAllConversations, getConversationsCursor, createConversation  } from '@api/conversation';
+import {
+  getAllConversations,
+  getConversationsCursor,
+  createConversation,
+  updateConversationName,
+  updateConversationCover,
+  deleteConversationCover,
+  addParticipants,
+  removeParticipant,
+  leaveConversation,
+  getConversationById,
+} from '@api/conversation';
 import { Conversation, CursorResponse } from 'schemas';
 import { ID, CreateConversationDTO } from 'schemas/index';
 
@@ -39,6 +50,71 @@ export const useCreateConversation = () => {
       const res = await createConversation(data);
       return res as unknown as Conversation;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'cursor'] });
+    },
+  });
+};
+
+export const useConversation = (id: ID) => {
+  return useQuery<Conversation>({
+    queryKey: ['conversation', id],
+    queryFn: () => getConversationById(id),
+    enabled: !!id,
+  });
+};
+
+const invalidateConversation = (queryClient: ReturnType<typeof useQueryClient>, id: ID) => {
+  queryClient.invalidateQueries({ queryKey: ['conversation', id] });
+  queryClient.invalidateQueries({ queryKey: ['conversations'] });
+  queryClient.invalidateQueries({ queryKey: ['conversations', 'cursor'] });
+};
+
+export const useUpdateConversationName = (id: ID) => {
+  const queryClient = useQueryClient();
+  return useMutation<Conversation, Error, string>({
+    mutationFn: (name) => updateConversationName(id, name),
+    onSuccess: () => invalidateConversation(queryClient, id),
+  });
+};
+
+export const useUpdateConversationCover = (id: ID) => {
+  const queryClient = useQueryClient();
+  return useMutation<Conversation, Error, string>({
+    mutationFn: (localUri) => updateConversationCover(id, localUri),
+    onSuccess: () => invalidateConversation(queryClient, id),
+  });
+};
+
+export const useDeleteConversationCover = (id: ID) => {
+  const queryClient = useQueryClient();
+  return useMutation<Conversation, Error, void>({
+    mutationFn: () => deleteConversationCover(id),
+    onSuccess: () => invalidateConversation(queryClient, id),
+  });
+};
+
+export const useAddParticipants = (id: ID) => {
+  const queryClient = useQueryClient();
+  return useMutation<Conversation, Error, ID[]>({
+    mutationFn: (participantIds) => addParticipants(id, participantIds),
+    onSuccess: () => invalidateConversation(queryClient, id),
+  });
+};
+
+export const useRemoveParticipant = (id: ID) => {
+  const queryClient = useQueryClient();
+  return useMutation<Conversation, Error, ID>({
+    mutationFn: (userId) => removeParticipant(id, userId),
+    onSuccess: () => invalidateConversation(queryClient, id),
+  });
+};
+
+export const useLeaveConversation = (id: ID) => {
+  const queryClient = useQueryClient();
+  return useMutation<Conversation, Error, void>({
+    mutationFn: () => leaveConversation(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversations', 'cursor'] });

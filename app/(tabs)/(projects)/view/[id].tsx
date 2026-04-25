@@ -31,13 +31,13 @@ const ViewProjectScreen = () => {
       headerRight: () => (
         <View style={styles.headerRight}>
           <TouchableOpacity
-            onPress={() => router.push(`/(projects)/edit/${project.id}`)}
+            onPress={() => router.push({ pathname: '/(tabs)/(projects)/edit/[id]', params: { id: project.id } })}
             style={styles.headerButton}
           >
             <Ionicons name="pencil" size={22} color={colors.darkBlue} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.push(`/(projects)/members/${project.id}`)}
+            onPress={() => router.push({ pathname: '/(tabs)/(projects)/members/[id]', params: { id: project.id } })}
             style={styles.headerButton}
           >
             <Ionicons name="person-add" size={22} color={colors.darkBlue} />

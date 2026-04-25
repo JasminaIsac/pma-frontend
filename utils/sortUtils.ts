@@ -9,6 +9,7 @@ import {
   User,
   UserRole,
   ProjectStatus,
+  Conversation,
 } from 'schemas';
 
 /* ────────────────────────────────
@@ -221,4 +222,15 @@ export const sortUsersByRole = (users: User[]): User[] => {
     const roleB = roleOrder[b.role?.toLowerCase() ?? ''] ?? 99;
     return roleA - roleB;
   });
+};
+
+
+export const sortConversationsByUpdatedAt = (
+  conversations: Conversation[]
+): Conversation[] => {
+  return [...conversations].sort(
+    (a, b) =>
+      new Date(b.updatedAt).getTime() -
+      new Date(a.updatedAt).getTime()
+  );
 };
