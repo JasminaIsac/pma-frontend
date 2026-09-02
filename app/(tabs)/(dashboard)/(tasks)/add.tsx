@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ScrollView, KeyboardAvoidingView, Platform, StyleSheet, Text, ToastAndroid } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,23 +11,31 @@ import { useProjects } from '@hooks/queries/useProjects';
 import { useProjectMembers } from '@hooks/queries/useProjectMembers';
 import { useAddTask } from '@hooks/queries/useTasks';
 import useToastNotification from '@hooks/useToastNotification';
+import { useTranslation } from 'react-i18next';
 
-const taskSchema = z.object({
-  name: z.string().min(3, 'Task title must be at least 3 characters'),
-  description: z.string().optional(),
-  priority: z.nativeEnum(TaskPriority),
-  projectId: z.string().min(1, 'Project is required'),
-  assignedTo: z.string().min(1, 'Assigned developer is required'),
-  deadline: z.string().min(1, 'Deadline is required'),
-});
-
-type TaskFormValues = z.infer<typeof taskSchema>;
+type TaskFormValues = {
+  name: string;
+  description?: string;
+  priority: TaskPriority;
+  projectId: string;
+  assignedTo: string;
+  deadline: string;
+};
 
 const AddTaskScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { projectId } = useLocalSearchParams<{ projectId?: string }>();
   const defaultProjectId = projectId ? String(projectId) : undefined;
-
   const router = useRouter();
+
+  const taskSchema = useMemo(() => z.object({
+    name: z.string().min(3, t('validation.titleMinChars', { count: 3 })),
+    description: z.string().optional(),
+    priority: z.nativeEnum(TaskPriority),
+    projectId: z.string().min(1, t('validation.projectRequired')),
+    assignedTo: z.string().min(1, t('validation.developerRequired')),
+    deadline: z.string().min(1, t('validation.deadlineRequired')),
+  }), [t]);
 
   const {
     control,
@@ -60,27 +68,15 @@ const AddTaskScreen: React.FC = () => {
   );
 
   const onSubmit = async (data: TaskFormValues) => {
-    addTask({...data,},
-      {
-        onSuccess: () => {
-          showSuccess('Success', 'Task added successfully');
-
-          if (defaultProjectId) {
-            router.replace({
-              pathname: '/(tabs)/(dashboard)/view/[id]',
-              params: { id: defaultProjectId }
-            });
-          } else {
-            router.back();
-          }
-        },
-        onError: (err) => {
-          console.error(err);
-          if(Platform.OS === 'android') ToastAndroid.show('Failed to add task', ToastAndroid.LONG)
-          else showError('Failed to add task', 'Something went wrong: ' + err.message);
-        }
+    addTask({ ...data }, {
+      onSuccess: () => {
+        showSuccess('Success', t('tasks.added'));
+        router.back();
       },
-    );
+      onError: () => {
+        showError('Error', t('tasks.failedAdd'));
+      },
+    });
   };
 
   if (loadingProjects || loadingUsers) return <LoadingIndicator />;
@@ -96,28 +92,25 @@ const AddTaskScreen: React.FC = () => {
         <LabeledPicker
           control={control}
           name="projectId"
-          label="Project"
-          placeholder="Select a project"
-          items={projects?.map(p => ({
-            label: p.name,
-            value: p.id,
-          })) ?? []}
+          label={t('tasks.project')}
+          placeholder={t('tasks.selectProject')}
+          items={projects?.map(p => ({ label: p.name, value: p.id })) ?? []}
           error={errors.projectId?.message}
         />
 
         <CustomInput
           control={control}
           name="name"
-          label="Task name"
-          placeholder="Task name..."
+          label={t('tasks.name')}
+          placeholder={t('tasks.name')}
           error={errors.name?.message}
         />
 
         <CustomInput
           control={control}
           name="description"
-          label="Description"
-          placeholder="Task description..."
+          label={t('tasks.description')}
+          placeholder={t('tasks.description')}
           multiline
           error={errors.description?.message}
         />
@@ -126,14 +119,14 @@ const AddTaskScreen: React.FC = () => {
           <LoadingIndicator />
         ) : projectMembersDevelopers.length === 0 ? (
           <Text style={[textPresets.noData, { color: colors.text.secondary, marginBottom: 10 }]}>
-            No developers available in this project.
+            {t('tasks.noDevelopers')}
           </Text>
         ) : (
           <LabeledPicker
             control={control}
             name="assignedTo"
-            label="Developer"
-            placeholder="Select developer"
+            label={t('tasks.developer')}
+            placeholder={t('tasks.selectDeveloper')}
             items={projectMembersDevelopers.map(dev => ({ label: dev.user.name, value: dev.user.id }))}
             error={errors.assignedTo?.message}
           />
@@ -142,12 +135,12 @@ const AddTaskScreen: React.FC = () => {
         <LabeledPicker
           control={control}
           name="priority"
-          label="Priority"
-          placeholder="Select priority"
+          label={t('tasks.priority')}
+          placeholder={t('tasks.priority')}
           items={[
-            { label: 'High', value: TaskPriority.HIGH },
-            { label: 'Medium', value: TaskPriority.MEDIUM },
-            { label: 'Low', value: TaskPriority.LOW },
+            { label: t('tasks.priorityHigh'), value: TaskPriority.HIGH },
+            { label: t('tasks.priorityMedium'), value: TaskPriority.MEDIUM },
+            { label: t('tasks.priorityLow'), value: TaskPriority.LOW },
           ]}
           error={errors.priority?.message}
         />
@@ -158,8 +151,8 @@ const AddTaskScreen: React.FC = () => {
           error={errors.deadline?.message}
         />
 
-        <CustomButton title="Create" onPress={handleSubmit(onSubmit)} disabled={adding} />
-        <CustomButton title="Cancel" type="secondary" onPress={() => router.back()} />
+        <CustomButton title={t('tasks.create')} onPress={handleSubmit(onSubmit)} disabled={adding} />
+        <CustomButton title={t('common.cancel')} type="secondary" onPress={() => router.back()} />
 
       </ScrollView>
     </KeyboardAvoidingView>
@@ -172,9 +165,7 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: colors.background.primary,
   },
-  contentContainer: {
-    paddingBottom: 20,
-  },
+  contentContainer: { paddingBottom: 20 },
 });
 
 export default AddTaskScreen;

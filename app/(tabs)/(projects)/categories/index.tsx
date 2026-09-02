@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet, Alert, ScrollView, Text, View } from 'react-native';
+import { StyleSheet, ScrollView, Text, View } from 'react-native';
+import { ConfirmModal } from '@components/modals/ConfirmModal';
+import { useConfirmModal } from '@hooks/useConfirmModal';
 import { colors, textPresets } from '@theme/index';
 import { useCategories, useAddCategory, useUpdateCategory, useDeleteCategory } from '@hooks/queries/useCategories';
 import { useToastNotification } from '@hooks/useToastNotification';
@@ -7,8 +9,10 @@ import { useMe } from '@hooks/queries/useMe';
 import { useProjectCountByCategory } from '@hooks/queries/useProjects';
 import { CustomButton, CategoryModal, CategoryCard, LoadingIndicator } from '@components/index';
 import { Category } from 'schemas';
+import { useTranslation } from 'react-i18next';
 
 const CategoriesScreen = () => {
+  const { t } = useTranslation();
   const { data: user, isLoading: loadingUser } = useMe();
   const { data: categories = [], isLoading: loadingCategories } = useCategories();
   const { data: projectsCounts } = useProjectCountByCategory();
@@ -16,8 +20,9 @@ const CategoriesScreen = () => {
   const addCategoryMutation = useAddCategory();
   const updateCategoryMutation = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
-  
+
   const { showSuccess, showError } = useToastNotification();
+  const { confirm, modalProps: confirmModalProps } = useConfirmModal();
 
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -28,58 +33,55 @@ const CategoriesScreen = () => {
     const newName = category.name.trim();
     try {
       if (selectedCategory) {
-        await updateCategoryMutation.mutateAsync({ 
-          id: selectedCategory.id, 
-          data: { name: newName } 
+        await updateCategoryMutation.mutateAsync({
+          id: selectedCategory.id,
+          data: { name: newName },
         });
-        showSuccess('Success', 'Category updated successfully');
+        showSuccess('Success', t('projects.categoryUpdated'));
       } else {
         const result = await addCategoryMutation.mutateAsync({ name: newName });
         if (result.isRestored) {
           showSuccess(
-            'Category Restored', 
-            `"${newName}" was previously deleted and has been restored.`
+            t('projects.categoryRestored'),
+            t('projects.categoryRestoreMsg', { name: newName }),
           );
-        } else showSuccess('Success', 'Category added successfully');
+        } else {
+          showSuccess('Success', t('projects.categoryAdded'));
+        }
       }
       onCloseModal();
     } catch (error: any) {
       if (error.response?.status === 409) {
-        setServerError('Category already exists');
+        setServerError(t('projects.categoryExists'));
       } else {
-        showError('Error', selectedCategory ? 'Failed to update category' : 'Failed to add category');
+        showError('Error', selectedCategory
+          ? t('projects.failedUpdateCategory')
+          : t('projects.failedAddCategory'));
       }
     }
   };
 
   const handleRemoveCategory = (category: Category) => {
-    Alert.alert(
-      'Delete Category',
-      'Are you sure you want to delete this category?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => confirmDelete(category.id) },
-      ]
-    );
+    confirm({
+      title: t('common.delete'),
+      message: t('projects.deleteCategoryConfirm'),
+      confirmLabel: t('common.delete'),
+      onConfirm: () => confirmDelete(category.id),
+    });
   };
 
   const confirmDelete = async (id: string) => {
     try {
       await deleteCategoryMutation.mutateAsync(id);
-      showSuccess('Success', 'Category deleted successfully');
+      showSuccess('Success', t('projects.categoryDeleted'));
     } catch (error: any) {
-      let title = 'Error';
-      let message = 'Failed to delete category';
-
       if (error.response?.status === 404) {
-        message = 'Category not found';
+        showError('Error', t('projects.categoryNotFound'));
       } else if (error.response?.status === 400) {
-        title = 'Cannot delete category';
-        message = 'Category is associated with projects';
+        showError(t('projects.cannotDeleteCategory'), t('projects.categoryHasProjectsError'));
       } else {
-        console.error('Unexpected error:', error);
+        showError('Error', t('projects.failedDeleteCategory'));
       }
-      showError(title, message);
     }
   };
 
@@ -90,12 +92,12 @@ const CategoriesScreen = () => {
   };
 
   if (loadingUser || loadingCategories) {
-    return <LoadingIndicator />
+    return <LoadingIndicator />;
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={textPresets.headerLarge}>All Categories</Text>
+      <Text style={textPresets.headerLarge}>{t('projects.allCategories')}</Text>
 
       <View style={styles.categoryList}>
         {categories.map((category: Category) => {
@@ -127,13 +129,14 @@ const CategoriesScreen = () => {
       />
 
       <CustomButton
-        title="Add Category"
+        title={t('projects.addCategory')}
         type="primary"
         onPress={() => {
           setSelectedCategory(null);
           setIsCategoryModalVisible(true);
         }}
       />
+      <ConfirmModal {...confirmModalProps} />
     </ScrollView>
   );
 };

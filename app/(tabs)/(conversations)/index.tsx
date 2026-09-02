@@ -1,4 +1,4 @@
-import { useEffect, useState, useLayoutEffect, useCallback } from 'react';
+import { useEffect, useState, useLayoutEffect, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -7,8 +7,9 @@ import { colors, textPresets } from '@theme/index';
 import { useAuth } from '@contexts/AuthContext';
 import { getConversationsCursor } from '@api/conversation';
 import { useChatSocket } from '@hooks/useChatSocket';
-import { LoadingIndicator, ConversationCard } from '@components/index';
+import { LoadingIndicator, ConversationCard, SearchBar } from '@components/index';
 import { Conversation, Message } from 'schemas';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 15;
 
@@ -17,6 +18,7 @@ const ConversationsScreen = () => {
   const navigation = useNavigation();
   const router = useRouter();
   const socket = useChatSocket();
+  const { t } = useTranslation();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,16 +26,17 @@ const ConversationsScreen = () => {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchConversations = async (cursorParam?: string) => {
+  const fetchConversations = useCallback(async (cursorParam?: string) => {
     if (!currentUserId) return;
     try {
       if (cursorParam) setLoadingMore(true);
-      else if (!refreshing) setLoading(true);
+      else setLoading(true);
 
       const res = await getConversationsCursor(PAGE_SIZE, cursorParam);
-      
-      setConversations(prev => 
+
+      setConversations(prev =>
         cursorParam ? [...prev, ...res.items] : res.items
       );
       setCursor(res.nextCursor ?? undefined);
@@ -45,23 +48,20 @@ const ConversationsScreen = () => {
       setLoadingMore(false);
       setRefreshing(false);
     }
-  };
+  }, [currentUserId]);
 
   useFocusEffect(
     useCallback(() => {
       fetchConversations();
-    }, [currentUserId])
+    }, [fetchConversations])
   );
 
-  // Real-Time via WebSocket
   useEffect(() => {
     if (!socket || !currentUserId) return;
 
-    // Join user-specific room to receive updates for all personal conversations
     socket.emit('join_user_room', { userId: currentUserId });
 
     const handleNewUpdate = (payload: any) => {
-      // Backend-ul trimite fie un Message direct, fie un obiect Conversation actualizat
       const incomingMsg: Message = payload.lastMessage || payload;
 
       setConversations(prev => {
@@ -76,8 +76,7 @@ const ConversationsScreen = () => {
             ...oldConv,
             lastMessage: incomingMsg,
             updatedAt: incomingMsg.createdAt,
-            participants: oldConv.participants.map(p => {
-              // Dacă eu am trimis mesajul, marchez conversația ca citită pentru mine instant
+            participants: (oldConv.participants ?? []).map(p => {
               if (p.userId === currentUserId && isMine) {
                 return { ...p, lastReadAt: incomingMsg.createdAt };
               }
@@ -85,12 +84,9 @@ const ConversationsScreen = () => {
             })
           };
 
-          // Mutăm conversația pe prima poziție (OrderBy updatedAt desc)
           updatedList.splice(index, 1);
           updatedList.unshift(updatedConv);
         } else {
-          // Dacă primim un mesaj dintr-o conversație care nu e în listă (ex: chat nou)
-          // Refacem fetch-ul pentru a aduce noua entitate completă
           fetchConversations();
         }
         return updatedList;
@@ -117,10 +113,20 @@ const ConversationsScreen = () => {
     }
   };
 
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    const q = searchQuery.toLowerCase().trim();
+    return conversations.filter(conv => {
+      if (conv.name?.toLowerCase().includes(q)) return true;
+      const others = conv.participants.filter(p => p.userId !== currentUserId);
+      return others.some(p => p.user?.name?.toLowerCase().includes(q));
+    });
+  }, [conversations, searchQuery, currentUserId]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={() => router.push('/add')} style={{ marginRight: 15 }}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/(conversations)/add')} style={{ marginRight: 15 }}>
           <Ionicons name="add-circle-outline" size={28} color={colors.mediumOrange} />
         </TouchableOpacity>
       ),
@@ -131,8 +137,13 @@ const ConversationsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <FlatList 
-        data={conversations}
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder={`${t('common.search')}...`}
+      />
+      <FlatList
+        data={filteredConversations}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ConversationCard 
@@ -153,7 +164,7 @@ const ConversationsScreen = () => {
           <View style={styles.emptyState}>
             <Ionicons name="chatbubbles-outline" size={64} color={colors.text.secondary} />
             <Text style={[textPresets.bodyMedium, styles.emptyText]}>
-              Nicio conversație momentan.
+              {t('conversations.noConversations')}
             </Text>
           </View>
         }
@@ -167,6 +178,7 @@ const ConversationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 6,
     backgroundColor: colors.background.primary,
   },
   listContent: {
@@ -182,7 +194,11 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.text.secondary,
     marginTop: 16,
-  }
+  },
+  searchBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border.primary,
+  },
 });
 
 export default ConversationsScreen;

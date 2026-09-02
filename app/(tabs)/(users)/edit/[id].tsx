@@ -1,26 +1,28 @@
-import { useEffect } from 'react';
-import { ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { CustomInput, CustomButton, LabeledPicker, LoadingIndicator } from '@components/index';
+import { ConfirmModal } from '@components/modals/ConfirmModal';
+import { useConfirmModal } from '@hooks/useConfirmModal';
 import { colors } from '@theme/index';
-import { useUser, useUpdateUser, useDeleteUser, useUserProjectsCount } from '@hooks/queries/useUsers';
+import { useUser, useUpdateUser, useDeleteUser } from '@hooks/queries/useUsers';
 import { UserRole, UserStatus, ID } from 'schemas/index';
 import { useToastNotification } from '@hooks/useToastNotification';
+import { useTranslation } from 'react-i18next';
 
-const userSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  tel: z.string().optional(),
-  location: z.string().optional(),
-  role: z.nativeEnum(UserRole),
-  status: z.nativeEnum(UserStatus),
-});
-
-type EditUserFormValues = z.infer<typeof userSchema>;
+type EditUserFormValues = {
+  name: string;
+  tel?: string;
+  location?: string;
+  role: UserRole;
+  status: UserStatus;
+};
 
 const EditUserScreen = () => {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
   const userId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -28,12 +30,29 @@ const EditUserScreen = () => {
   const { showSuccess, showError } = useToastNotification();
 
   const { data: user, isLoading: loadingUser } = useUser(userId as ID);
-  const { data: projectsCount } = useUserProjectsCount(userId as ID);
   const { mutate: updateUserMutate, isPending: updating } = useUpdateUser();
   const { mutate: deleteUserMutate, isPending: deleting } = useDeleteUser();
+  const { confirm, modalProps: confirmModalProps } = useConfirmModal();
+
+  const userSchema = useMemo(() => z.object({
+    name: z.string().min(3, t('validation.nameMinChars', { count: 3 })),
+    tel: z.string()
+      .refine(val => !val || /^\+?[1-9]\d{1,14}$/.test(val), t('validation.invalidPhoneFormat'))
+      .optional(),
+    location: z.string().optional(),
+    role: z.nativeEnum(UserRole),
+    status: z.nativeEnum(UserStatus),
+  }), [t]);
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<EditUserFormValues>({
     resolver: zodResolver(userSchema),
+    defaultValues: {
+      name: '',
+      tel: '',
+      location: '',
+      role: UserRole.DEVELOPER,
+      status: UserStatus.ACTIVE,
+    },
   });
 
   useEffect(() => {
@@ -48,51 +67,39 @@ const EditUserScreen = () => {
     }
   }, [user, reset]);
 
-  const onSave = async (data: EditUserFormValues) => {
+  const onDelete = () => {
     if (!user) return;
+    confirm({
+      title: t('common.delete'),
+      message: t('users.deleteConfirm'),
+      confirmLabel: t('common.delete'),
+      onConfirm: () =>
+        deleteUserMutate(user.id, {
+          onSuccess: () => {
+            showSuccess('Success', t('users.deleted'));
+            router.back();
+            router.back();
+          },
+          onError: () => showError('Error', t('users.failedDelete')),
+        }),
+    });
+  };
 
+  const onSave = (data: EditUserFormValues) => {
+    if (!user) return;
     updateUserMutate(
       { id: user.id, data },
       {
         onSuccess: () => {
-          showSuccess('Success', 'User updated successfully');
+          showSuccess('Success', t('users.updated'));
           setTimeout(() => router.back(), 200);
         },
-        onError: () => showError('Error', 'Failed to update user'),
+        onError: () => showError('Error', t('users.failedUpdate')),
       }
     );
   };
 
-
-  const onDelete = async () => {
-    if (!user) return;
-
-    if (projectsCount && projectsCount > 0) {
-      Alert.alert('Error', 'User is involved in projects and cannot be deleted');
-      return;
-    }
-
-    Alert.alert('Confirm', 'Are you sure you want to delete this user?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          deleteUserMutate(user.id, {
-            onSuccess: () => {
-              showSuccess('Deleted', 'User deleted successfully');
-              router.replace('/(tabs)/(users)');
-            },
-            onError: () => showError('Error', 'Failed to delete user'),
-          });
-        },
-      },
-    ]);
-  };
-
-  if (loadingUser) {
-    return <LoadingIndicator />;
-  }
+  if (loadingUser || !user) return <LoadingIndicator />;
 
   return (
     <KeyboardAvoidingView
@@ -106,65 +113,40 @@ const EditUserScreen = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <CustomInput
-            control={control}
-            name="name"
-            label="Name"
-            placeholder="Name"
-            error={errors.name?.message}
-          />
-          <CustomInput
-            control={control}
-            name="tel"
-            label="Tel"
-            placeholder="Tel"
-            error={errors.tel?.message}
-          />
+          <CustomInput control={control} name="name" label={t('users.name')} placeholder={t('users.name')} error={errors.name?.message} />
+          <CustomInput control={control} name="tel" label={t('users.tel')} placeholder={t('users.tel')} error={errors.tel?.message} />
           <LabeledPicker
             control={control}
             name="role"
-            label="Role"
-            placeholder="Role"
+            label={t('users.role')}
+            placeholder={t('users.role')}
             items={[
-              { label: 'Admin', value: UserRole.ADMIN },
-              { label: 'Project Manager', value: UserRole.PROJECT_MANAGER },
-              { label: 'Developer', value: UserRole.DEVELOPER },
+              { label: t('users.roleAdmin'), value: UserRole.ADMIN },
+              { label: t('users.roleProjectManager'), value: UserRole.PROJECT_MANAGER },
+              { label: t('users.roleDeveloper'), value: UserRole.DEVELOPER },
             ]}
             error={errors.role?.message}
           />
-          <CustomInput
-            control={control}
-            name="location"
-            label="Location"
-            placeholder="Location"
-            error={errors.location?.message}
-          />
+          <CustomInput control={control} name="location" label={t('users.location')} placeholder={t('users.location')} error={errors.location?.message} />
           <LabeledPicker
             control={control}
             name="status"
-            label="Status"
-            placeholder="Status"
+            label={t('users.status')}
+            placeholder={t('users.status')}
             items={[
-              { label: 'Active', value: UserStatus.ACTIVE },
-              { label: 'Inactive', value: UserStatus.INACTIVE },
-              { label: 'Banned', value: UserStatus.BANNED },
-              { label: 'Deleted', value: UserStatus.DELETED },
+              { label: t('users.statusActive'), value: UserStatus.ACTIVE },
+              { label: t('users.statusInactive'), value: UserStatus.INACTIVE },
+              { label: t('users.statusBanned'), value: UserStatus.BANNED },
             ]}
             error={errors.status?.message}
           />
-          <CustomButton
-            title="Save Changes"
-            onPress={handleSubmit(onSave)}
-            disabled={updating}
-          />
-          <CustomButton
-            title="Delete User"
-            onPress={onDelete}
-            type="delete"
-            disabled={deleting}
-          />
+          <View style={styles.actionRow}>
+            <CustomButton title={t('common.delete')} type="delete" onPress={onDelete} disabled={deleting} style={{ flex: 1 }} />
+            <CustomButton title={t('common.saveChanges')} onPress={handleSubmit(onSave)} disabled={updating} style={{ flex: 1 }} />
+          </View>
         </ScrollView>
       </TouchableWithoutFeedback>
+      <ConfirmModal {...confirmModalProps} />
     </KeyboardAvoidingView>
   );
 };
@@ -174,6 +156,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     backgroundColor: colors.background.primary,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
 });
 

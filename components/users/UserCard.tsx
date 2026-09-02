@@ -12,11 +12,16 @@ interface UserCardProps {
 }
 
 export const UserCard: React.FC<UserCardProps> = ({ user, onPress }) => {
+  const statusConfig = colors.userStatus[user.status] ?? { color: '#6c757d', label: user.status ?? '' };
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <MemberAvatar member={user} size={70}/>
       <View style={styles.textContainer}>
-        <Tag title={formatEnum(user.role)} backgroundColor={colors.lightBlue} textColor={colors.darkBlue} style={{ marginVertical: 2 }} />
+        <View style={styles.tagsRow}>
+          <Tag title={formatEnum(user.role)} backgroundColor={colors.lightBlue} textColor={colors.darkBlue} style={{ marginVertical: 2 }} />
+          <Tag title={statusConfig.label} backgroundColor={statusConfig.color} textColor={colors.white} style={{ marginVertical: 2 }} />
+        </View>
         <Text style={[textPresets.headerMedium, { color: colors.mediumOrange }, { marginBottom: 0 }]}>{user.name}</Text>
         <Text style={[textPresets.bodyMediumBold, { color: colors.darkBlue, marginBottom: 4 }]}>{user.email}</Text>
         <Text style={[textPresets.bodySmallBold, { color: colors.text.secondary }]}>{user.tel}</Text>
@@ -44,5 +49,11 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'center',
   },
 });

@@ -11,11 +11,11 @@ export const createConversation = async (
   data: CreateConversationDTO
 ) => {
   const res = await apiClient.post<Conversation>('/conversations', data);
-  return res;
+  return res as unknown as Conversation;
 };
 
 export const getAllConversations = async () => {
-  return await apiClient.get<Conversation[]>('/conversations/all');
+  return await apiClient.get<Conversation[]>('/conversations/all') as unknown as Conversation[];
 };
 
 export const getConversationsCursor = async (
@@ -23,9 +23,9 @@ export const getConversationsCursor = async (
   cursor?: ID | string
 ) => {
   const res = await apiClient.get<CursorResponse<Conversation>>('/conversations', {
-    params: { 
+    params: {
       limit: limitSize,
-      cursor: cursor 
+      cursor: cursor,
     }
   });
   return res as unknown as CursorResponse<Conversation>;
@@ -36,12 +36,12 @@ export const getConversationById = async (id: ID) => {
 };
 
 export const deleteConversation = async (id: ID) => {
-  return await apiClient.delete<Conversation>(`/conversations/${id}`);
+  return await apiClient.delete<Conversation>(`/conversations/${id}`) as unknown as Conversation;
 };
 
-export const updateConversationName = async (id: ID, name: string) => {
+export const updateConversationName = async (id: ID, name: string): Promise<Conversation> => {
   const res = await apiClient.patch<Conversation>(`/conversations/${id}/name`, { name });
-  return res.data;
+  return res as unknown as Conversation;
 };
 
 export const updateConversationCover = async (id: ID, localUri: string): Promise<Conversation> => {
@@ -61,25 +61,25 @@ export const updateConversationCover = async (id: ID, localUri: string): Promise
     headers: { 'Content-Type': 'multipart/form-data' },
     transformRequest: (data) => data,
   });
-  return res.data;
+  return res as unknown as Conversation;
 };
 
 export const deleteConversationCover = async (id: ID): Promise<Conversation> => {
   const res = await apiClient.delete<Conversation>(`/conversations/${id}/cover`);
-  return res.data;
+  return res as unknown as Conversation;
 };
 
 export const addParticipants = async (id: ID, participantIds: ID[]): Promise<Conversation> => {
   const res = await apiClient.post<Conversation>(`/conversations/${id}/participants`, { participantIds });
-  return res.data;
+  return res as unknown as Conversation;
 };
 
 export const removeParticipant = async (id: ID, userId: ID): Promise<Conversation> => {
   const res = await apiClient.delete<Conversation>(`/conversations/${id}/participants/${userId}`);
-  return res.data;
+  return res as unknown as Conversation;
 };
 
 export const leaveConversation = async (id: ID): Promise<Conversation> => {
   const res = await apiClient.post<Conversation>(`/conversations/${id}/leave`);
-  return res.data;
+  return res as unknown as Conversation;
 };

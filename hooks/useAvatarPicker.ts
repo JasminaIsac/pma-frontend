@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { z } from 'zod';
 import { useUpdateAvatar, useDeleteAvatar } from '@hooks/queries/useMe';
 import { useCameraPermission, useMediaLibraryPermission } from '@hooks/usePermissions';
 import useToastNotification from './useToastNotification';
+import { useTranslation } from 'react-i18next';
 
 const imageSchema = z
   .string()
@@ -14,10 +15,11 @@ const imageSchema = z
   }, 'Only JPG, JPEG or PNG images are allowed');
 
 export const useAvatarPicker = () => {
+  const { t } = useTranslation();
   const [localLoading, setLocalLoading] = useState<boolean>(false);
   const { requestCamera } = useCameraPermission();
   const { requestLibrary } = useMediaLibraryPermission();
-  const { showSuccess } = useToastNotification();
+  const { showSuccess, showError } = useToastNotification();
 
   const { mutateAsync: updateAvatar, isPending: isUpdating } = useUpdateAvatar();
   const { mutateAsync: deleteAvatar, isPending: isDeleting } = useDeleteAvatar();
@@ -78,10 +80,10 @@ export const useAvatarPicker = () => {
     try {
       setLocalLoading(true);
       await updateAvatar(uri);
-      showSuccess('Success', 'Avatar updated successfully');
+      showSuccess('Success', t('users.avatarUpdated'));
       return uri;
     } catch (err) {
-      Alert.alert('Upload failed', 'Could not upload image: ' + err);
+      showError('Error', t('users.avatarUploadFailed'));
       return null;
     } finally {
       setLocalLoading(false);
@@ -92,10 +94,10 @@ export const useAvatarPicker = () => {
     try {
       setLocalLoading(true);
       await deleteAvatar();
-      Alert.alert('Success', 'Profile picture removed');
+      showSuccess('Success', t('users.avatarDeleted'));
       return true;
     } catch (err) {
-      Alert.alert('Error', 'Failed to remove image');
+      showError('Error', t('users.avatarDeleteFailed'));
       return false;
     } finally {
       setLocalLoading(false);

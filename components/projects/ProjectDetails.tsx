@@ -6,6 +6,7 @@ import { getStatusTagData, formatDate } from '@utils/index';
 import { Project, ProjectMember } from 'schemas';
 import { MemberAvatarsList } from '../users';
 import { CompletedTasksProgress } from '../tasks';
+import { useTranslation } from 'react-i18next';
 
 interface ProjectDetailsProps {
   project: Project;
@@ -13,10 +14,11 @@ interface ProjectDetailsProps {
 }
 
 export const ProjectDetails = ({ project, members }: ProjectDetailsProps) => {
+  const { t } = useTranslation();
   const formattedDeadline = formatDate(project.deadline);
   const formattedCreatedAt = formatDate(project.createdAt);
   const formattedUpdatedAt = formatDate(project.updatedAt);
-  
+
   const statusData = getStatusTagData(project.status as string);
 
   return (
@@ -40,14 +42,14 @@ export const ProjectDetails = ({ project, members }: ProjectDetailsProps) => {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Ionicons name="time" size={14} color={colors.lightBlue} />
               <Text style={[textPresets.bodySmallBold, { color: colors.lightBlue }]}>
-                Created: <Text style={textPresets.bodySmall}>{formattedCreatedAt}</Text>
+                {t('common.created')}: <Text style={textPresets.bodySmall}>{formattedCreatedAt}</Text>
               </Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Ionicons name="time" size={14} color={colors.lightBlue} />
               <Text style={[textPresets.bodySmallBold, { color: colors.lightBlue }]}>
-                Last Updated: <Text style={textPresets.bodySmall}>{formattedUpdatedAt}</Text>
+                {t('common.lastUpdated')}: <Text style={textPresets.bodySmall}>{formattedUpdatedAt}</Text>
               </Text>
             </View>
           </View>

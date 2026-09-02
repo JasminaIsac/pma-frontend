@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@theme/index';
 import { TaskStatus, ProjectStatus } from 'schemas';
-import { FilterOption, buildStatusOptions } from '@utils/index';
+import { FilterOption, buildStatusOptions, formatEnum } from '@utils/index';
+import { useTranslation } from 'react-i18next';
 
 type FilterType = 'task' | 'project';
 
@@ -13,14 +14,14 @@ interface FilterSelectProps {
   onFilterChange: (value: string) => void;
 }
 
-const FILTER_OPTIONS: Record<FilterType, FilterOption[]> = {
-  task: buildStatusOptions(TaskStatus, 'All Tasks'),
-  project: buildStatusOptions(ProjectStatus, 'All Projects'),
-};
-
 export const FilterSelect: React.FC<FilterSelectProps> = ({ type = 'task', selectedFilter, onFilterChange }) => {
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const options = FILTER_OPTIONS[type] || [];
+
+  const options: FilterOption[] = useMemo(() => {
+    if (type === 'task') return buildStatusOptions(TaskStatus, t('filters.allTasks'));
+    return buildStatusOptions(ProjectStatus, t('filters.allProjects'));
+  }, [type, t]);
 
   const handleSelect = (value: string) => {
     onFilterChange(value);
@@ -34,14 +35,9 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({ type = 'task', selec
         onPress={() => setModalVisible(true)}
       >
         <Text style={styles.dropdownText}>
-          {options.find(opt => opt.value === selectedFilter)?.label ??
-            'Filter by:'}
+          {options.find(opt => opt.value === selectedFilter)?.label ?? t('filters.filterBy')}
         </Text>
-        <Ionicons
-          name="chevron-down"
-          size={20}
-          color={colors.text.secondary}
-        />
+        <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="fade">
@@ -80,8 +76,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: colors.background.primary,
     borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },

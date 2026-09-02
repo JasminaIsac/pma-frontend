@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@theme/index';
 import { TaskWithRelations, Project } from 'schemas';
 import { sortItems, TaskSortMethod, ProjectSortMethod } from '@utils/index';
+import { useTranslation } from 'react-i18next';
 
 type SortType = 'task' | 'project';
 
@@ -30,24 +31,6 @@ interface SortSelectProps<T extends SortType> {
   onSorted?: (sorted: SortDataMap[T]) => void;
 }
 
-const SORT_OPTIONS: { [K in SortType]: SortOption<SortValueMap[K]>[] } = {
-  task: [
-    { label: 'Sort By', value: 'default' },
-    { label: 'Priority', value: 'priority' },
-    { label: 'Status', value: 'status' },
-    { label: 'Deadline', value: 'deadline' },
-    { label: 'Updated At', value: 'updatedAt' },
-    { label: 'Created At', value: 'createdAt' },
-  ],
-  project: [
-    { label: 'Sort By', value: 'default' },
-    { label: 'Name', value: 'name' },
-    { label: 'Status', value: 'status' },
-    { label: 'Created At', value: 'createdAt' },
-    { label: 'Updated At', value: 'updatedAt' },
-  ],
-};
-
 export const SortSelect = <T extends SortType>({
   type,
   data,
@@ -55,18 +38,33 @@ export const SortSelect = <T extends SortType>({
   onSortChange,
   onSorted,
 }: SortSelectProps<T>) => {
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
-  const [currentSort, setCurrentSort] =
-    useState<SortValueMap[T]>(selectedSort);
+  const [currentSort, setCurrentSort] = useState<SortValueMap[T]>(selectedSort);
 
-  const options = useMemo(
-    () => SORT_OPTIONS[type],
-    [type]
-  );
+  const SORT_OPTIONS: { [K in SortType]: SortOption<SortValueMap[K]>[] } = useMemo(() => ({
+    task: [
+      { label: t('filters.sortBy'), value: 'default' },
+      { label: t('filters.priority'), value: 'priority' },
+      { label: t('filters.status'), value: 'status' },
+      { label: t('filters.deadline'), value: 'deadline' },
+      { label: t('filters.updatedAt'), value: 'updatedAt' },
+      { label: t('filters.createdAt'), value: 'createdAt' },
+    ],
+    project: [
+      { label: t('filters.sortBy'), value: 'default' },
+      { label: t('filters.name'), value: 'name' },
+      { label: t('filters.status'), value: 'status' },
+      { label: t('filters.createdAt'), value: 'createdAt' },
+      { label: t('filters.updatedAt'), value: 'updatedAt' },
+    ],
+  }), [t]);
+
+  const options = useMemo(() => SORT_OPTIONS[type], [SORT_OPTIONS, type]);
 
   const selectedLabel = useMemo(
-    () => options.find(o => o.value === currentSort)?.label ?? 'Sort By',
-    [options, currentSort]
+    () => options.find(o => o.value === currentSort)?.label ?? t('filters.sortBy'),
+    [options, currentSort, t]
   );
 
   const lastSentRef = React.useRef<{ sort: SortValueMap[T] | null; key: string | null }>({ sort: null, key: null });
@@ -109,11 +107,7 @@ export const SortSelect = <T extends SortType>({
         activeOpacity={0.8}
       >
         <Text style={styles.dropdownText}>{selectedLabel}</Text>
-        <Ionicons
-          name="chevron-down"
-          size={20}
-          color={colors.text.secondary}
-        />
+        <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="fade">
@@ -143,8 +137,8 @@ export const SortSelect = <T extends SortType>({
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    marginBottom: 5 
+  container: {
+    marginBottom: 5,
   },
   dropdownButton: {
     flexDirection: 'row',
@@ -152,8 +146,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: colors.background.primary,
     borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },

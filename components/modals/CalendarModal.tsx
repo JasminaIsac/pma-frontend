@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Modal } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { colors, textPresets } from '@theme/index';
 import { CustomButton } from '../ui';
+import { useTranslation } from 'react-i18next';
 
 interface CalendarModalProps {
   isCalendarVisible: boolean;
@@ -17,6 +18,7 @@ export const CalendarModal: FC<CalendarModalProps> = React.memo(({
   setSelectedDate,
   taskCounts
 }) => {
+  const { t } = useTranslation();
   const markedDates = useMemo(() => {
     return Object.keys(taskCounts).reduce<Record<string, any>>((acc, date) => {
       acc[date] = {
@@ -69,7 +71,7 @@ export const CalendarModal: FC<CalendarModalProps> = React.memo(({
           theme={calendarTheme}
         />
         <CustomButton
-          title="Close"
+          title={t('common.close')}
           onPress={handleClose}
         />
       </View>

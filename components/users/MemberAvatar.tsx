@@ -25,7 +25,7 @@ export const MemberAvatar: React.FC<MemberAvatarProps> = ({ member, size = 35, m
       ) : (
         <View style={[styles.placeholder, { width: size, height: size }]}>
           <Text style={[textPresets.bodySmallBold, { color: colors.white, textAlign: 'center', fontSize: size/3 }]}>
-            {member.name[0].toUpperCase()}
+            {member.name?.[0]?.toUpperCase() ?? '?'}
           </Text>
         </View>
       )}

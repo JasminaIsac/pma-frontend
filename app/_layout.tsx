@@ -1,10 +1,18 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { View, StyleSheet, LogBox, BackHandler } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, NotificationProvider, useAuth } from '@contexts/index';
+import { AuthProvider, NotificationProvider, LanguageProvider, useAuth } from '@contexts/index';
 import { useMe } from '@hooks/queries/useMe';
 import { LoadingIndicator} from '@components/index';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@utils/i18n';
+
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+]);
 
 // Suppress Reanimated 4 deprecation warning
 if (__DEV__) {
@@ -26,15 +34,38 @@ const NavigationGuard = () => {
   const router = useRouter();
   const segments = useSegments();
 
+  // Keep a ref to the latest segments so the auth guard reads the current
+  // route without re-running on every navigation change.
+  const segmentsRef = useRef(segments);
+  useLayoutEffect(() => { segmentsRef.current = segments; }, [segments]);
+
   const [fontsLoaded] = useFonts({
     Baloo2_700Bold: require('@assets/fonts/Baloo2-VariableFont_wght.ttf'),
   });
 
+  const isLoading = !fontsLoaded || authLoading || (!!token && queryLoading);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (router.canGoBack()) return false;
+      const seg = segmentsRef.current;
+      const inTabsGroup = seg[0] === '(tabs)';
+      const onDashboard = seg.some(s => s === '(dashboard)');
+      if (inTabsGroup && !onDashboard) {
+        router.replace('/(tabs)/(dashboard)');
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [router]);
+
   useEffect(() => {
     if (!fontsLoaded || authLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const inTabsGroup = segments[0] === '(tabs)';
+    const seg = segmentsRef.current;
+    const inAuthGroup = seg[0] === '(auth)';
+    const inTabsGroup = seg[0] === '(tabs)';
 
     if (!token) {
       if (!inAuthGroup) {
@@ -52,25 +83,42 @@ const NavigationGuard = () => {
         router.replace('/(auth)/login');
       }
     }
-  }, [token, authLoading, user, queryLoading, fontsLoaded, isFetched, segments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, authLoading, user, queryLoading, fontsLoaded, isFetched]);
 
-  if (!fontsLoaded || authLoading || (token && queryLoading)) {
-    return <LoadingIndicator />;
-  }
-
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <LoadingIndicator />
+        </View>
+      )}
+    </>
+  );
 };
 
-const queryClient = new QueryClient();
+const styles = StyleSheet.create({
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#fff',
+  },
+});
 
 export default function RootLayout() {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <NotificationProvider>
-          <NavigationGuard /> 
-        </NotificationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <I18nextProvider i18n={i18n}>
+      <LanguageProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <NotificationProvider>
+              <NavigationGuard />
+            </NotificationProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </LanguageProvider>
+    </I18nextProvider>
   );
 }

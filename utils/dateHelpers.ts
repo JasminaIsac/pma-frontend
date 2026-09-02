@@ -1,13 +1,21 @@
+import i18n from '@utils/i18n';
+
+const getLocale = (): string => {
+  const lang = i18n.language || 'en';
+  const map: Record<string, string> = { en: 'en-US', ro: 'ro-RO', ru: 'ru-RU' };
+  return map[lang] ?? 'en-US';
+};
+
 export const formatDate = (date: string | Date | null | undefined, fallback = 'Not set'): string => {
   if (!date) return fallback;
 
   const dateObj = new Date(date);
   if (isNaN(dateObj.getTime())) return fallback;
 
-  return dateObj.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: '2-digit', 
-    year: 'numeric' 
+  return dateObj.toLocaleDateString(getLocale(), {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric'
   });
 };
 
@@ -17,20 +25,16 @@ export const formatDateWithSuffix = (date: string | Date | null | undefined): st
   const dateObj = new Date(date);
   if (isNaN(dateObj.getTime())) return '';
 
-  const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
-  const day = dateObj.getDate();
+  const locale = getLocale();
 
-  const getDaySuffix = (day: number): string => {
-    if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
+  if (i18n.language === 'en') {
+    const month = dateObj.toLocaleDateString(locale, { month: 'short' });
+    const day = dateObj.getDate();
+    return `${month}, ${day}`;
+  }
 
-  return `${month}, ${day}${getDaySuffix(day)}`;
+  // ro-RO and ru-RU locales naturally produce "17 iun." / "17 июн." order
+  return dateObj.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 };
 
 export const formatRelativeDate = (date: string | Date | null | undefined): string => {
@@ -42,28 +46,25 @@ export const formatRelativeDate = (date: string | Date | null | undefined): stri
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
 
-  // Dacă e în viitor (cazul Today/Tomorrow din codul tău original)
   if (diffInSeconds < 0) {
     const diffDays = Math.ceil(Math.abs(diffInSeconds) / (60 * 60 * 24));
-    if (diffDays === 1) return 'Tomorrow';
-    return `In ${diffDays} days`;
+    if (diffDays === 1) return i18n.t('common.tomorrow');
+    return i18n.t('common.inXDays', { count: diffDays });
   }
 
-  // Mesaje trimise ACUM (trecut)
-  if (diffInSeconds < 60) return 'now';
-  
+  if (diffInSeconds < 60) return i18n.t('common.now');
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes}m`;
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours}h`;
 
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays === 1) return 'Yesterday';
+  if (diffInDays === 1) return i18n.t('common.yesterday');
   if (diffInDays < 7) return `${diffInDays}d`;
 
-  // Dacă e mai vechi de o săptămână, folosim formatul tău standard
-  return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return dateObj.toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
 };
 
 export const isPastDate = (date: string | Date | null | undefined): boolean => {
@@ -107,4 +108,14 @@ export const toISODate = (date: Date | string): string => {
   const d = new Date(date);
   if (isNaN(d.getTime())) return '';
   return d.toISOString().split('T')[0];
+};
+
+export const formatDateParts = (date: Date | string | null | undefined): { day: number; month: string; year: number } => {
+  const d = date ? new Date(date) : new Date();
+  const valid = !isNaN(d.getTime()) ? d : new Date();
+  return {
+    day: valid.getDate(),
+    month: valid.toLocaleString(getLocale(), { month: 'short' }),
+    year: valid.getFullYear(),
+  };
 };

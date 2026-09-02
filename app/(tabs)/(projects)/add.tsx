@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import {ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
+import { ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { useRouter } from 'expo-router'
 import { CustomButton, CustomInput, LabeledPicker, SelectDeadlineInput, LoadingIndicator } from '@components/index'
 import { colors } from '@theme/index'
@@ -11,29 +11,33 @@ import { useAddProject } from '@hooks/queries/useProjects'
 import { useCategories } from '@hooks/queries/useCategories'
 import { Category, CreateProjectDTO } from 'schemas'
 import { useMe } from '@hooks/queries/useMe'
+import { useTranslation } from 'react-i18next'
 
-const projectSchema = z.object({
-  name: z.string().min(3, 'Project name must be at least 3 characters'),
-  description: z.string().optional(),
-  categoryId: z.string().min(1, 'Category is required'),
-  deadline: z.string().optional(),
-})
-
-type FormData = z.infer<typeof projectSchema>
+type FormData = {
+  name: string;
+  description?: string;
+  categoryId: string;
+  deadline?: string;
+}
 
 export default function AddProjectScreen() {
   const router = useRouter()
-  const { data:user, isLoading: loadingUser } = useMe()
+  const { t } = useTranslation()
+  const { data: user, isLoading: loadingUser } = useMe()
   const { data: categories = [], isLoading: categoriesLoading } = useCategories()
-  const { mutateAsync, isPending } = useAddProject();
+  const { mutateAsync, isPending } = useAddProject()
   const { showSuccess, showError } = useToastNotification()
 
-  if(!user) return null;
+  const projectSchema = useMemo(() => z.object({
+    name: z.string().min(3, t('validation.nameMinChars', { count: 3 })),
+    description: z.string().optional(),
+    categoryId: z.string().min(1, t('validation.categoryRequired')),
+    deadline: z.string().optional(),
+  }), [t])
 
   const {
     control,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(projectSchema),
@@ -46,36 +50,26 @@ export default function AddProjectScreen() {
   })
 
   const pickerItems = useMemo(
-    () => [
-      ...categories.map((c: Category) => ({
-        label: c.name,
-        value: c.id,
-      })),
-    ],
+    () => categories.map((c: Category) => ({ label: c.name, value: c.id })),
     [categories]
-  );
+  )
 
   const onSubmit = async (data: FormData) => {
-    let deadline = data.deadline?.trim()
-
+    if (!user?.id) return
     const payload: CreateProjectDTO = {
       ...data,
-      deadline,
-      managerId: user.id,
+      deadline: data.deadline?.trim(),
     }
-
     try {
-      const project = await mutateAsync(payload);
-      showSuccess('Project Created', 'Your project has been created successfully!');
-      router.push({ pathname: '/(tabs)/(projects)/view/[id]', params: { id: project.id } });
-    } catch (err) {
-      showError('Error', 'Failed to create project');
+      const project = await mutateAsync(payload)
+      showSuccess(t('projects.created'), t('projects.createdMsg'))
+      router.replace({ pathname: '/(tabs)/(projects)/view/[id]', params: { id: project.id } })
+    } catch {
+      showError('Error', t('projects.failedCreate'))
     }
   }
 
-  if (loadingUser || categoriesLoading) {
-    return <LoadingIndicator />
-  }
+  if (loadingUser || categoriesLoading) return <LoadingIndicator />
 
   return (
     <KeyboardAvoidingView
@@ -88,8 +82,8 @@ export default function AddProjectScreen() {
           <CustomInput
             name="name"
             control={control}
-            label="Project Title"
-            placeholder="Project name..."
+            label={t('projects.name')}
+            placeholder={t('projects.name')}
             error={errors.name?.message}
           />
 
@@ -99,9 +93,9 @@ export default function AddProjectScreen() {
             <LabeledPicker
               name="categoryId"
               control={control}
-              label="Category"
+              label={t('projects.category')}
               items={pickerItems}
-              placeholder="Select category"
+              placeholder={t('projects.selectCategory')}
               error={errors.categoryId?.message}
             />
           )}
@@ -109,8 +103,8 @@ export default function AddProjectScreen() {
           <CustomInput
             name="description"
             control={control}
-            label="Project Description"
-            placeholder="Project description..."
+            label={t('projects.description')}
+            placeholder={t('projects.description')}
             multiline
           />
 
@@ -121,7 +115,7 @@ export default function AddProjectScreen() {
           />
 
           <CustomButton
-            title="Create"
+            title={t('projects.create')}
             onPress={handleSubmit(onSubmit)}
             disabled={isPending}
           />
@@ -131,10 +125,10 @@ export default function AddProjectScreen() {
   )
 }
 
-const styles = StyleSheet.create({ 
-  container: { 
-    flex: 1, 
-    padding: 16, 
-    backgroundColor: colors.background.primary, 
-  }, 
-});
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: colors.background.primary,
+  },
+})

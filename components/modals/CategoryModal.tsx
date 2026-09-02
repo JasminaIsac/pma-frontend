@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { colors, textPresets } from '@theme/index';
 import { Category } from 'schemas';
 import { CustomInput, CustomButton } from '../ui';
+import { useTranslation } from 'react-i18next';
 
 const categorySchema = z.object({
   name: z
@@ -30,6 +31,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   category,
   error,
 }) => {
+  const { t } = useTranslation();
   const isEditing = !!category;
 
   const {
@@ -63,14 +65,14 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <Text style={textPresets.headerLarge}>
-            {isEditing ? 'Edit Category' : 'Add New Category'}
+            {isEditing ? t('projects.editCategory') : t('projects.addNewCategory')}
           </Text>
 
           <CustomInput
             name="name"
             control={control}
-            label="Category name"
-            placeholder="Category name"
+            label={t('projects.categoryName')}
+            placeholder={t('projects.categoryName')}
             error={errors.name?.message || error}
           />
 
@@ -83,7 +85,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
               />
             ) : (
               <CustomButton
-                title={isEditing ? 'Update' : 'Save'}
+                title={isEditing ? t('common.update') : t('common.save')}
                 onPress={handleSubmit(handleSave)}
                 style={{ width: '48%' }}
                 disabled={isSubmitting || !!error}
@@ -91,7 +93,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
             )}
 
             <CustomButton
-              title="Cancel"
+              title={t('common.cancel')}
               type="secondary"
               onPress={onClose}
               style={{ width: '48%' }}

@@ -1,16 +1,18 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import CircularProgress from 'react-native-circular-progress-indicator';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { textPresets, colors } from '@theme/index';
 import { useTodayTasks } from '@hooks/useTodayTasks';
-import { getMotivationalMessage } from '@utils/index';
+import { getMotivationalKey } from '@utils/index';
 
 export const TodayProgress = () => {
   const router = useRouter();
+  const { t } = useTranslation();
   const { todayTasks, percentage } = useTodayTasks();
-  const { title, subtitle } = getMotivationalMessage( percentage, todayTasks.length > 0 );
+  const key = getMotivationalKey(percentage, todayTasks.length > 0);
   const handleNavigate = (): void => router.push('/(tabs)/(dashboard)/(tasks)');
 
   return (
@@ -22,16 +24,16 @@ export const TodayProgress = () => {
     >
       <View style={styles.content}>
         <Text style={[textPresets.headerMedium, styles.title]}>
-          {title}
+          {t(`motivational.${key}.title`)}
         </Text>
 
         <Text style={[textPresets.bodyMedium, styles.subtitle]}>
-          {subtitle}
+          {t(`motivational.${key}.subtitle`)}
         </Text>
 
         <TouchableOpacity style={styles.button} onPress={handleNavigate}>
           <Text style={[textPresets.button, styles.buttonText]}>
-            See all your tasks
+            {t('dashboard.seeAllTasks')}
           </Text>
         </TouchableOpacity>
       </View>

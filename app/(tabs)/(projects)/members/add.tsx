@@ -7,6 +7,7 @@ import { ID, UserRole } from 'schemas';
 import { CustomButton, LabeledPicker, LoadingIndicator } from '@components/index';
 import { useForm } from 'react-hook-form';
 import useToastNotification from '@hooks/useToastNotification';
+import { useTranslation } from 'react-i18next';
 
 type FormValues = {
   userId: ID | null;
@@ -14,6 +15,7 @@ type FormValues = {
 };
 
 export default function AddProjectMemberScreen(): React.ReactElement {
+  const { t } = useTranslation();
   const rawProjectId = useLocalSearchParams().projectId;
   const projectId = Array.isArray(rawProjectId) ? rawProjectId[0] : rawProjectId;
 
@@ -44,56 +46,56 @@ export default function AddProjectMemberScreen(): React.ReactElement {
       },
       {
         onSuccess: () => {
-          showSuccess('Success', 'Member added successfully');
+          showSuccess('Success', t('projects.memberAdded'));
           router.back();
         },
         onError: () => {
-          showError('Error', 'Failed to add member');
+          showError('Error', t('projects.failedAddMember'));
         },
       },
     );
   };
 
-  if (isLoading) 
+  if (isLoading)
     return (
       <LoadingIndicator />
     );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add Member to Project</Text>
+      <Text style={styles.title}>{t('projects.addMemberTitle')}</Text>
       <LabeledPicker
         name="userId"
         control={control}
         rules={{ required: true }}
-        label="Select User"
-        placeholder="Select user"
+        label={t('projects.selectUser')}
+        placeholder={t('projects.selectUser')}
         items={availableUsers.map((u) => ({
           label: u.name,
           value: u.id,
         }))}
-        error={errors.userId ? 'User is required' : undefined}
+        error={errors.userId ? t('projects.userRequired') : undefined}
       />
       <LabeledPicker
         name="userRole"
         control={control}
         rules={{ required: true }}
-        label="Select Role"
-        placeholder="Select role"
+        label={t('projects.selectRole')}
+        placeholder={t('projects.selectRole')}
         items={[
-          { label: 'Developer', value: UserRole.DEVELOPER },
-          { label: 'Project Manager', value: UserRole.PROJECT_MANAGER },
+          { label: t('users.roleDeveloper'), value: UserRole.DEVELOPER },
+          { label: t('users.roleProjectManager'), value: UserRole.PROJECT_MANAGER },
         ]}
-        error={errors.userRole ? 'Role is required' : undefined}
+        error={errors.userRole ? t('projects.roleRequired') : undefined}
       />
 
       <CustomButton
-        title="Add Member"
+        title={t('projects.addMemberBtn')}
         onPress={handleSubmit(onSubmit)}
         type="primary"
       />
       <CustomButton
-        title="Cancel"
+        title={t('common.cancel')}
         onPress={() => router.back()}
         type="secondary"
       />

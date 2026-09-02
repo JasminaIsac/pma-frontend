@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Controller, Control } from 'react-hook-form';
 import { colors, textPresets } from '@theme/index';
 import { formatDate} from '@utils/dateHelpers';
+import { useTranslation } from 'react-i18next';
 
 interface SelectDeadlineInputProps {
   name: string;
@@ -17,10 +18,12 @@ interface SelectDeadlineInputProps {
 export const SelectDeadlineInput: React.FC<SelectDeadlineInputProps> = ({
   name,
   control,
-  label = 'Deadline',
+  label,
   minimumDate = new Date(),
   error,
 }) => {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t('projects.deadline');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const onDateChange = (
@@ -36,9 +39,9 @@ export const SelectDeadlineInput: React.FC<SelectDeadlineInputProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      {label && (
+      {resolvedLabel && (
         <Text style={[textPresets.headerSmall, { color: colors.text.primary }]}>
-          {label}
+          {resolvedLabel}
         </Text>
       )}
 
@@ -51,7 +54,7 @@ export const SelectDeadlineInput: React.FC<SelectDeadlineInputProps> = ({
               <TextInput
                 style={styles.input}
                 value={formatDate(value)}
-                placeholder="Select deadline"
+                placeholder={t('projects.selectDeadline')}
                 editable={false}
               />
 

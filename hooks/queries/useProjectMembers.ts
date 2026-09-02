@@ -56,7 +56,7 @@ export const useAvailableProjectUsers = (projectId: ID) => {
     if (!users.length) return [];
 
     const memberUserIds = new Set(
-      members.map((m) => m.userId),
+      members.map((m) => m.user?.id ?? m.userId),
     );
 
     return users.filter(

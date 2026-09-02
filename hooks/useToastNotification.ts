@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useNotification } from '@contexts/index';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 type ShowFn = (title: string, message: string, delay?: number) => void;
 
 export const useToastNotification = () => {
+  const { t } = useTranslation();
   const { sendNotification, sendDelayedNotification } = useNotification();
 
   const show = (
@@ -12,10 +14,13 @@ export const useToastNotification = () => {
     message: string,
     delay?: number
   ): void => {
+    const displayTitle = title === 'Success' ? t('common.success')
+      : title === 'Error' ? t('common.errorTitle')
+      : title;
     if (delay && delay > 0) {
-      sendDelayedNotification(title, message, delay, { type });
+      sendDelayedNotification(displayTitle, message, delay, { type });
     } else {
-      sendNotification(title, message, { type });
+      sendNotification(displayTitle, message, { type });
     }
   };
 

@@ -3,13 +3,14 @@ import * as api from '@api/tasks';
 import { ID, TaskWithRelations, CreateTaskDTO, UpdateTaskDTO, CursorResponse, TaskCountByMember } from 'schemas';
 
 // --- Fetch all tasks ---
-export const useTasks = () => {
+export const useTasks = (enabled = true) => {
   return useQuery<TaskWithRelations[]>({
     queryKey: ['tasks'],
     queryFn: async () => {
       const res = await api.getAllTasks();
       return res as unknown as TaskWithRelations[];
     },
+    enabled,
     staleTime: 1000 * 60,
     retry: 1,
   });
@@ -115,10 +116,12 @@ export const useAddTask = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateTaskDTO) => api.createTask(data),
+    mutationFn: async (data: CreateTaskDTO) => {
+      const res = await api.createTask(data);
+      return res as unknown as TaskWithRelations;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks', 'cursor'] });
     },
   });
 };
@@ -135,7 +138,6 @@ export const useUpdateTask = () => {
     onSuccess: (res) => {
       const updated = res as unknown as TaskWithRelations;
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks', 'cursor'] });
       queryClient.invalidateQueries({ queryKey: ['task', updated.id] });
     },
   });
@@ -149,7 +151,6 @@ export const useDeleteTask = () => {
     mutationFn: (id: ID) => api.deleteTask(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks', 'cursor'] });
     },
   });
 };

@@ -7,6 +7,7 @@ import { useProjectMembers } from '@hooks/queries/useProjectMembers';
 import { MemberAvatarsList } from '../users';
 import { LoadingIndicator, Tag } from '../ui';
 import { CompletedTasksProgress } from '../tasks';
+import { useTranslation } from 'react-i18next';
 
 
 interface ProjectCardProps {
@@ -16,18 +17,18 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ item, onPress, isCompleted = false }) => {
-
+  const { t } = useTranslation();
   const { data: members = [], isLoading } = useProjectMembers(item.id);
 
   const formattedDeadline = useMemo(() => {
-    if (isCompleted) return 'Project completed'
-    else return formatRelativeDate(item.deadline) || 'No deadline'
-  }, [item.deadline] );
+    if (isCompleted) return t('projects.projectCompleted');
+    else return formatRelativeDate(item.deadline) || t('projects.noDeadline');
+  }, [item.deadline, t, isCompleted]);
 
   const handlePress = useCallback(() => {
-    if(isCompleted && Platform.OS === 'android') ToastAndroid.show('This project is completed', ToastAndroid.SHORT);
-      onPress(item);
-  }, [onPress, item]);
+    if (isCompleted && Platform.OS === 'android') ToastAndroid.show(t('projects.projectCompletedMsg'), ToastAndroid.SHORT);
+    onPress(item);
+  }, [onPress, item, isCompleted, t]);
 
   if (isLoading) return <LoadingIndicator />;
 
@@ -42,7 +43,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ item, onPress, isCompl
           <View style={styles.tagsContainer}>
             {item.status === ProjectStatus.NEW && (
               <Tag
-                title="New"
+                title={t('projects.statusNew')}
                 backgroundColor={colors.taskStatus.NEW.color}
                 textColor={colors.white}
               />

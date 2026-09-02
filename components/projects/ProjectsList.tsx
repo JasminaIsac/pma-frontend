@@ -5,6 +5,7 @@ import { Project, ProjectStatus } from 'schemas';
 import { completedLast, sortItems } from '@utils/index';
 import { colors, textPresets } from '@theme/index';
 import { ProjectCard } from './ProjectCard';
+import { useTranslation } from 'react-i18next';
 
 interface ProjectsListProps {
   style?: StyleProp<ViewStyle>;
@@ -21,12 +22,9 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
   isFetchingNextPage,
   onPress,
 }) => {
+  const { t } = useTranslation();
   const router = useRouter();
 
-  if (projects.length === 0) {
-    return null;
-  }
-    
   const sortedProjects = useMemo(() => {
     if (!Array.isArray(projects) || projects.length === 0) {
       return [];
@@ -44,6 +42,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
   return (
     <FlatList
       style={style}
+      contentContainerStyle={{ flexGrow: 1 }}
       data={sortedProjects}
       keyExtractor={(item) => item.id}
       showsVerticalScrollIndicator={false}
@@ -58,7 +57,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
       onEndReachedThreshold={0.5}
       ListEmptyComponent={
         <Text style={[textPresets.noData, styles.noProjects]}>
-          No projects found.
+          {t('projects.noProjects')}
         </Text>
       }
       ListFooterComponent={

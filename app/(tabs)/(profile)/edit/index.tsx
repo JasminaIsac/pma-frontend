@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { CustomInput, CustomButton, ChangePasswordModal, LoadingIndicator } from '@components/index';
 import { colors } from '@theme/index';
@@ -9,30 +9,35 @@ import { z } from 'zod';
 import { useMe } from '@hooks/queries/useMe';
 import { useUpdateUser } from '@hooks/queries/useUsers';
 import useToastNotification from '@hooks/useToastNotification';
+import { useTranslation } from 'react-i18next';
 
-export const editProfileSchema = z.object({
-  name: z.string().min(2, "Name is too short"),
-  location: z.string().min(2, "Location is too short"),
-  tel: z
-    .string()
-    .min(6, "Phone number too short")
-    .regex(/^[0-9+\-\s]+$/, "Invalid phone number"),
-});
-
-type EditProfileFormData = z.infer<typeof editProfileSchema>;
+type EditProfileFormData = {
+  name: string;
+  location: string;
+  tel: string;
+};
 
 const EditProfile: React.FC = () => {
+  const { t } = useTranslation();
   const { data: user, isLoading } = useMe();
   const { mutateAsync: updateUserMutation } = useUpdateUser();
   const [isPasswordModalVisible, setPasswordModalVisible] = useState(false);
   const { showSuccess, showError } = useToastNotification();
 
-  const { 
+  const editProfileSchema = useMemo(() => z.object({
+    name: z.string().min(2, t('validation.nameMinChars', { count: 2 })),
+    location: z.string().min(2, t('validation.locationTooShort')),
+    tel: z.string()
+      .min(6, t('validation.phoneTooShort'))
+      .regex(/^[0-9+\-\s]+$/, t('validation.invalidPhone')),
+  }), [t]);
+
+  const {
     control,
     reset,
     handleSubmit,
-    formState: { errors, isDirty } // isDirty ne spune daca s-a schimbat ceva
-} = useForm<EditProfileFormData>({
+    formState: { errors, isDirty },
+  } = useForm<EditProfileFormData>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
       name: user?.name ?? "",
@@ -53,56 +58,54 @@ const EditProfile: React.FC = () => {
 
   const onSubmit = async (formData: EditProfileFormData) => {
     if (!user?.id) return;
-
     try {
       await updateUserMutation({ id: user.id, data: formData });
-      showSuccess("Success", "Profile updated!");
+      showSuccess("Success", t('profile.updated'));
       router.back();
-    } catch (err) {
-      console.error(err);
-      showError("Error", "Something went wrong while updating profile.");
+    } catch {
+      showError("Error", t('profile.failedUpdate'));
     }
   };
 
-  if(isLoading) return <LoadingIndicator />;
+  if (isLoading) return <LoadingIndicator />;
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <CustomInput
         name="name"
         control={control}
-        label="Name"       
-        placeholder="Enter your name"
+        label={t('users.name')}
+        placeholder={t('users.name')}
         error={errors.name?.message}
       />
 
       <CustomInput
         name="location"
         control={control}
-        label="Location"
-        placeholder="Enter your location"
+        label={t('users.location')}
+        placeholder={t('users.location')}
         error={errors.location?.message}
       />
 
       <CustomInput
         name="tel"
         control={control}
-        label="Phone Number"
-        placeholder="Enter your phone number"
+        label={t('profile.phoneNumber')}
+        placeholder={t('profile.phoneNumber')}
         keyboardType="phone-pad"
         error={errors.tel?.message}
       />
 
-      <CustomButton 
-        title="Save Changes" 
+      <CustomButton
+        title={t('common.saveChanges')}
         onPress={handleSubmit(onSubmit)}
         disabled={!isDirty}
-       />
-      <CustomButton 
-        title="Change Password"
+      />
+      <CustomButton
+        title={t('profile.changePassword')}
         type="delete"
         onPress={() => setPasswordModalVisible(true)}
       />
@@ -116,7 +119,7 @@ const EditProfile: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
     padding: 20,
     backgroundColor: colors.background.primary,

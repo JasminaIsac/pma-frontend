@@ -1,8 +1,9 @@
 import React, { FC } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ToastAndroid, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, textPresets } from '@theme/index';
 import { Category, UserRole } from 'schemas';
+import { useTranslation } from 'react-i18next';
 import useToastNotification from '@hooks/useToastNotification';
 
 interface CategoryCardProps {
@@ -20,6 +21,7 @@ export const CategoryCard: FC<CategoryCardProps> = ({
   onEdit,
   currentUserRole,
 }) => {
+  const { t } = useTranslation();
   const canDelete = projectsCount === 0;
   const { showError } = useToastNotification();
 
@@ -27,12 +29,16 @@ export const CategoryCard: FC<CategoryCardProps> = ({
     if (canDelete) {
       onRemove(category);
     } else {
-      if(Platform.OS === 'android')
-        ToastAndroid.show('This category has active projects associated with it.', ToastAndroid.SHORT);
-      else 
-        showError('Cannot delete category', 'This category has active projects associated with it.');
+      if (Platform.OS === 'android')
+        showError(t('projects.cannotDeleteCategory'), t('projects.categoryHasActiveProjects'));
+      else
+        showError(t('projects.cannotDeleteCategory'), t('projects.categoryHasActiveProjects'));
     }
   };
+
+  const countLabel = projectsCount === 1
+    ? t('projects.projectCount_one', { count: projectsCount })
+    : t('projects.projectCount_other', { count: projectsCount });
 
   return (
     <View style={styles.card}>
@@ -40,33 +46,18 @@ export const CategoryCard: FC<CategoryCardProps> = ({
         <Text style={textPresets.bodyLargeBold}>
           {category.name}
         </Text>
-        <Text
-          style={[
-            textPresets.bodySmallBold,
-            { color: colors.text.accentOrange },
-          ]}
-        >
-          {projectsCount === 1 ? `${projectsCount} project` : `${projectsCount} projects`}
+        <Text style={[textPresets.bodySmallBold, { color: colors.text.accentOrange }]}>
+          {countLabel}
         </Text>
       </View>
 
       {currentUserRole !== 'developer' && (
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            onPress={() => onEdit(category)}
-            style={styles.editButton}
-          >
-            <Ionicons
-              name="pencil"
-              size={22}
-              color={colors.mediumBlue}
-            />
+          <TouchableOpacity onPress={() => onEdit(category)} style={styles.editButton}>
+            <Ionicons name="pencil" size={22} color={colors.mediumBlue} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={handleRemovePress}
-            style={styles.removeButton}
-          >
+          <TouchableOpacity onPress={handleRemovePress} style={styles.removeButton}>
             <Ionicons
               name="close-circle"
               size={26}

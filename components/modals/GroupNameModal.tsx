@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { colors, textPresets } from '@theme/index';
 import { CustomInput, CustomButton } from '../ui';
+import { useTranslation } from 'react-i18next';
 
 const groupSchema = z.object({
   name: z
@@ -29,9 +30,12 @@ export const GroupNameModal: React.FC<GroupNameModalProps> = ({
   onClose,
   onSubmit,
   initialName = '',
-  title = 'Create Group',
-  submitLabel = 'Create',
+  title,
+  submitLabel,
 }) => {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('conversations.createGroup');
+  const resolvedSubmitLabel = submitLabel ?? t('projects.create');
   const {
     control,
     handleSubmit,
@@ -64,14 +68,14 @@ export const GroupNameModal: React.FC<GroupNameModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <Text style={[textPresets.headerLarge, { marginBottom: 15 }]}>
-            {title}
+            {resolvedTitle}
           </Text>
 
           <CustomInput
             name="name"
             control={control}
-            label="Group Name"
-            placeholder="Enter group name..."
+            label={t('conversations.groupName')}
+            placeholder={t('conversations.groupNamePlaceholder')}
             error={errors.name?.message}
           />
 
@@ -84,7 +88,7 @@ export const GroupNameModal: React.FC<GroupNameModalProps> = ({
               />
             ) : (
               <CustomButton
-                title={submitLabel}
+                title={resolvedSubmitLabel}
                 onPress={handleSubmit(handleSave)}
                 style={{ width: '48%' }}
                 disabled={isSubmitting}
@@ -92,7 +96,7 @@ export const GroupNameModal: React.FC<GroupNameModalProps> = ({
             )}
 
             <CustomButton
-              title="Cancel"
+              title={t('common.cancel')}
               type="secondary"
               onPress={onClose}
               style={{ width: '48%' }}

@@ -6,6 +6,7 @@ import { Conversation } from "schemas";
 import { formatRelativeDate } from "@utils/dateHelpers";
 import { MemberAvatar } from "../users/MemberAvatar";
 import { formatMentionPreview } from "./MentionText";
+import { useTranslation } from "react-i18next";
 
 interface ConversationCardProps {
   conversation: Conversation;
@@ -14,6 +15,7 @@ interface ConversationCardProps {
 
 export const ConversationCard = ({ conversation, currentUserId }: ConversationCardProps) => {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const unreadCount = conversation.unreadCount || 0;
   const lastMessage = conversation.lastMessage;
@@ -76,7 +78,16 @@ export const ConversationCard = ({ conversation, currentUserId }: ConversationCa
               numberOfLines={1}
             >
               {lastMessage
-                ? `${(lastMessage.senderId || lastMessage.sender?.id) === currentUserId ? 'You: ' : ''}${formatMentionPreview(lastMessage.message, lastMessage.mentions ?? [])}`
+                ? (() => {
+                    const isOwn = (lastMessage.senderId || lastMessage.sender?.id) === currentUserId;
+                    const prefix = isOwn ? `${t('common.you')}: ` : '';
+                    const hasText = lastMessage.message?.trim();
+                    const hasFile = lastMessage.attachments?.length > 0;
+                    const body = hasText
+                      ? formatMentionPreview(lastMessage.message, lastMessage.mentions ?? [])
+                      : hasFile ? t('conversations.file') : '';
+                    return prefix + body;
+                  })()
                 : ""}
             </Text>
             

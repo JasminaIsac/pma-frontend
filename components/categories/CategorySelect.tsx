@@ -1,8 +1,9 @@
 import React, { FC, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, textPresets } from '@theme/index';
+import { colors } from '@theme/index';
 import { Category } from 'schemas';
+import { useTranslation } from 'react-i18next';
 
 interface CategoryItem {
   id: Category['id'] | 'all';
@@ -20,6 +21,7 @@ export const CategorySelect: FC<CategorySelectProps> = ({
   selectedCategory,
   onCategoryChange,
 }) => {
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState<boolean>(false);
 
   const handleSelect = (value: Category['id'] | 'all') => {
@@ -29,12 +31,12 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 
   const selectedLabel =
     selectedCategory === 'all'
-      ? 'All Categories'
+      ? t('filters.allCategories')
       : categories.find(cat => cat.id === selectedCategory)?.name ??
-        'Select category';
+        t('filters.selectCategory');
 
   const data: CategoryItem[] = [
-    { id: 'all', title: 'All Categories' },
+    { id: 'all', title: t('filters.allCategories') },
     ...categories.map(cat => ({ id: cat.id, title: cat.name })),
   ];
 
@@ -46,11 +48,7 @@ export const CategorySelect: FC<CategorySelectProps> = ({
         activeOpacity={0.8}
       >
         <Text style={styles.dropdownText}>{selectedLabel}</Text>
-        <Ionicons
-          name="chevron-down"
-          size={20}
-          color={colors.text.secondary}
-        />
+        <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="fade">
@@ -89,8 +87,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: colors.background.primary,
     borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },

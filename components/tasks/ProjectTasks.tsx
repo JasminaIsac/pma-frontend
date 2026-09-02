@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, textPresets } from '@theme/index';
@@ -7,20 +7,23 @@ import { ID, User, UserRole, TaskWithRelations, TaskStatus } from 'schemas';
 import { filterItems, sortItems, TaskSortMethod } from '@utils/index';
 import { TaskList } from './TaskList';
 import { SortSelect, FilterSelect } from '../ui';
+import { useTranslation } from 'react-i18next';
 
 interface ProjectTasksProps {
   projectId: ID;
   user?: User | null;
   tasks: TaskWithRelations[];
-  onTaskUpdate?: (task: TaskWithRelations) => void;
+  hasDevelopers: boolean;
 }
 
 export const ProjectTasks: React.FC<ProjectTasksProps> = React.memo(({
   tasks,
   projectId,
   user,
+  hasDevelopers,
 }) => {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [sortMethod, setSortMethod] =
     useState<TaskSortMethod>('default');
@@ -37,20 +40,22 @@ export const ProjectTasks: React.FC<ProjectTasksProps> = React.memo(({
   }, [tasks, filterStatus, sortMethod]);
 
   const handleAddTask = useCallback(() => {
+    if (!hasDevelopers) {
+      Alert.alert(t('tasks.noDevelopers'), t('tasks.noDevelopersAlert'));
+      return;
+    }
     router.push({
-      pathname: '/(tabs)/(tasks)/add',
-      params: {
-        projectId,
-      },
-    });
-  }, [router, projectId]);
+      pathname: '/(tabs)/(projects)/task/add',
+      params: { projectId },
+    } as any);
+  }, [router, projectId, hasDevelopers, t]);
 
   const canAddTasks = user?.role !== UserRole.DEVELOPER;
 
   return (
     <View style={styles.tasksContainer}>
       <View style={styles.tasksHeader}>
-        <Text style={textPresets.headerLarge}>Tasks</Text>
+        <Text style={[textPresets.headerMedium, { marginBottom: 0 }]}>{t('tasks.title')}</Text>
 
         <View style={styles.headerActions}>
             <SortSelect<'task'>
@@ -70,7 +75,6 @@ export const ProjectTasks: React.FC<ProjectTasksProps> = React.memo(({
           {canAddTasks && (
             <TouchableOpacity
               onPress={handleAddTask}
-              style={styles.addButton}
               activeOpacity={0.7}
             >
               <Ionicons
@@ -83,7 +87,7 @@ export const ProjectTasks: React.FC<ProjectTasksProps> = React.memo(({
         </View>
       </View>
 
-      <TaskList tasks={filteredAndSortedTasks} />
+      <TaskList tasks={filteredAndSortedTasks} scrollable={false} />
     </View>
   );
 });
@@ -107,9 +111,6 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  addButton: {
-    padding: 4,
+    gap: 4,
   },
 });

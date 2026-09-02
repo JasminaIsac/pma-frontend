@@ -29,6 +29,7 @@ export interface CreateConversationDTO {
   type: ConversationType;
   participantIds: ID[];
   name?: string;
+  adminId?: ID;
 }
 
 interface UserPreview {

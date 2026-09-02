@@ -24,7 +24,6 @@ export interface CreateProjectDTO {
   name: string;
   description?: string | null;
   categoryId: ID;
-  managerId: ID;
   deadline?: ISODate | null;
 }
 
@@ -32,10 +31,7 @@ export interface UpdateProjectDTO {
   name?: string;
   description?: string | null;
   categoryId?: ID;
-  status?: ProjectStatus;
-  managerId?: ID;
   deadline?: ISODate | null;
-  updatedAt?: ISODate | null;
 }
 
 export type ProjectCountByCategory = {

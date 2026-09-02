@@ -14,12 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@theme/index';
 import { useCameraPermission, useMediaLibraryPermission } from '@hooks/usePermissions';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 
 interface GroupAvatarProps {
   size?: number;
   uri?: string | null;
   name: string;
-  isAdmin: boolean;
+  canEdit: boolean;
   isLoading?: boolean;
   onUpload: (localUri: string) => void;
   onRemove: () => void;
@@ -29,11 +30,12 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
   size = 110,
   uri,
   name,
-  isAdmin,
+  canEdit,
   isLoading = false,
   onUpload,
   onRemove,
 }) => {
+  const { t } = useTranslation();
   const { requestLibrary } = useMediaLibraryPermission();
   const { requestCamera } = useCameraPermission();
 
@@ -53,13 +55,13 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
   }, [requestLibrary, requestCamera, onUpload]);
 
   const handlePress = useCallback(() => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
 
     const hasImage = !!uri;
 
     if (Platform.OS === 'ios') {
-      const options = ['Cancel', 'Take Photo', 'Choose from Gallery'];
-      if (hasImage) options.push('Remove Photo');
+      const options = [t('common.cancel'), t('conversations.takePhoto'), t('conversations.chooseGallery')];
+      if (hasImage) options.push(t('conversations.removePhoto'));
       ActionSheetIOS.showActionSheetWithOptions(
         { options, cancelButtonIndex: 0, destructiveButtonIndex: hasImage ? 3 : undefined },
         async (idx) => {
@@ -70,20 +72,20 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
       );
     } else {
       const buttons: any[] = [
-        { text: 'Take Photo', onPress: () => pickAndUpload('camera') },
-        { text: 'Choose from Gallery', onPress: () => pickAndUpload('library') },
+        { text: t('conversations.takePhoto'), onPress: () => pickAndUpload('camera') },
+        { text: t('conversations.chooseGallery'), onPress: () => pickAndUpload('library') },
       ];
-      if (hasImage) buttons.push({ text: 'Remove Photo', style: 'destructive', onPress: onRemove });
-      buttons.push({ text: 'Cancel', style: 'cancel' });
-      Alert.alert('Group Photo', 'Choose an option', buttons);
+      if (hasImage) buttons.push({ text: t('conversations.removePhoto'), style: 'destructive', onPress: onRemove });
+      buttons.push({ text: t('common.cancel'), style: 'cancel' });
+      Alert.alert(t('conversations.groupPhoto'), t('conversations.chooseOption'), buttons, { cancelable: true });
     }
-  }, [isAdmin, uri, pickAndUpload, onRemove]);
+  }, [canEdit, uri, pickAndUpload, onRemove]);
 
   return (
     <TouchableOpacity
       onPress={handlePress}
-      activeOpacity={isAdmin ? 0.8 : 1}
-      disabled={!isAdmin}
+      activeOpacity={canEdit ? 0.8 : 1}
+      disabled={!canEdit}
       style={[styles.container, { width: size, height: size, borderRadius: size / 2 }]}
     >
       {uri ? (

@@ -8,20 +8,20 @@ import { useUsers } from "@hooks/queries/useUsers";
 import { useCreateConversation } from "@hooks/queries/useConversations";
 import { GroupNameModal, SearchBar, UserCardConversation } from "@components/index";
 import useToastNotification from "@hooks/useToastNotification";
+import { useTranslation } from "react-i18next";
 
 const NewConversationScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const router = useRouter();
 
   const { data: users } = useUsers();
   const { mutate: createConversation, isPending } = useCreateConversation();
-
   const { showError } = useToastNotification();
 
   const [isGroupMode, setIsGroupMode] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showGroupNameModal, setShowGroupNameModal] = useState(false);
-
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredUsers = React.useMemo(() => {
@@ -42,41 +42,36 @@ const NewConversationScreen = () => {
   const handleUserPress = (user: User) => {
     if (!isGroupMode) {
       createConversation(
-        {
-          type: ConversationType.PRIVATE,
-          participantIds: [user.id],
-        }, 
+        { type: ConversationType.PRIVATE, participantIds: [user.id] },
         {
           onSuccess: (data) => {
-            router.push(`/messages/${data.id}`);
+            router.replace({ pathname: '/(tabs)/(conversations)/messages/[id]', params: { id: data.id } } as any);
           },
           onError: (error) => {
-            if(Platform.OS === 'android') ToastAndroid.show(error.message, ToastAndroid.LONG);
+            if (Platform.OS === 'android') ToastAndroid.show(error.message, ToastAndroid.LONG);
             else showError('Error', error.message);
-          }
+          },
         }
       );
       return;
     }
-
     toggleUser(user.id);
   };
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: isGroupMode ? () => null : undefined,
-      
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15, marginRight: 5 }}>
           {isGroupMode && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 setIsGroupMode(false);
                 setSelectedUsers([]);
               }}
             >
               <Text style={{ color: colors.button.delete, fontWeight: "600" }}>
-                Cancel
+                {t('common.cancel')}
               </Text>
             </TouchableOpacity>
           )}
@@ -91,28 +86,25 @@ const NewConversationScreen = () => {
             }}
             disabled={(isGroupMode && selectedUsers.length < 2) || isPending}
           >
-            <Text
-              style={{
-                color: colors.mediumOrange,
-                fontWeight: "700",
-              }}
-            >
-              {isGroupMode ? "Done" : "Create Group"}
+            <Text style={{ color: colors.mediumOrange, fontWeight: "700" }}>
+              {isGroupMode ? t('conversations.done') : t('conversations.createGroup')}
             </Text>
           </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, isGroupMode, selectedUsers, isPending]);
+  }, [navigation, isGroupMode, selectedUsers, isPending, t]);
 
   return (
     <View style={styles.container}>
-      <SearchBar 
-        value={searchQuery} 
-        onChangeText={setSearchQuery} 
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder={`${t('common.search')}...`}
       />
       <FlatList
         data={filteredUsers}
+        contentContainerStyle={{ paddingHorizontal: 6 }}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <UserCardConversation
@@ -128,13 +120,16 @@ const NewConversationScreen = () => {
         visible={showGroupNameModal}
         onClose={() => setShowGroupNameModal(false)}
         onSubmit={(groupName) => {
-          createConversation({
-            type: ConversationType.GROUP,
-            participantIds: selectedUsers,
-            name: groupName,
-          });
           setShowGroupNameModal(false);
-          navigation.goBack();
+          createConversation(
+            { type: ConversationType.GROUP, participantIds: selectedUsers, name: groupName },
+            {
+              onSuccess: (data) => {
+                router.replace({ pathname: '/(tabs)/(conversations)/messages/[id]', params: { id: data.id } } as any);
+              },
+              onError: () => navigation.goBack(),
+            }
+          );
         }}
       />
     </View>
@@ -148,6 +143,5 @@ const styles = StyleSheet.create({
     padding: 10,
   },
 });
-
 
 export default NewConversationScreen;

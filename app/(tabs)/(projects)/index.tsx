@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { colors } from '@theme/colors';
 import { ProjectsList, FilterSelect, CategorySelect, SortSelect, LoadingIndicator } from '@components/index';
@@ -6,10 +6,13 @@ import { sortItems, ProjectSortMethod, filterItems } from '@utils/index';
 import { useProjectsCursor } from '@hooks/queries/useProjects';
 import { useCategories } from '@hooks/queries/useCategories';
 import { Project } from 'schemas';
+import { onProjectsTabPress } from '@utils/projectsReset';
+import { useMaxStackDepth } from '@hooks/useMaxStackDepth';
 
 const PAGE_SIZE = 10;
 
 const AllProjectsScreen: React.FC = () => {
+  useMaxStackDepth();
   const [sortMethod, setSortMethod] = useState<ProjectSortMethod>('default')
   const [filter, setFilter] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -23,6 +26,14 @@ const AllProjectsScreen: React.FC = () => {
   } = useProjectsCursor(PAGE_SIZE)
 
   const { data: categories = [] } = useCategories()
+
+  useEffect(() => {
+    return onProjectsTabPress(() => {
+      setSortMethod('default');
+      setFilter('all');
+      setSelectedCategory('all');
+    });
+  }, []);
 
   const allProjects = useMemo<Project[]>(() => {
     return data?.pages.flatMap((page: { items: any; }) => page.items) ?? []
@@ -41,30 +52,32 @@ const AllProjectsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView  
-        style={styles.filtersBar}
-        horizontal
-        contentContainerStyle={styles.filtersContent}
-      >
-        <SortSelect
-          type="project"
-          data={allProjects}
-          selectedSort={sortMethod}
-          onSortChange={setSortMethod}
-        />
+      <View style={styles.filtersBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContent}
+        >
+          <SortSelect
+            type="project"
+            data={allProjects}
+            selectedSort={sortMethod}
+            onSortChange={setSortMethod}
+          />
 
-        <CategorySelect
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-        />
+          <CategorySelect
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
 
-        <FilterSelect
-          type="project"
-          selectedFilter={filter}
-          onFilterChange={setFilter}
-        />
-      </ScrollView>
+          <FilterSelect
+            type="project"
+            selectedFilter={filter}
+            onFilterChange={setFilter}
+          />
+        </ScrollView>
+      </View>
 
       <ProjectsList
         projects={filteredAndSortedProjects}
@@ -86,18 +99,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.secondary,
   },
   filtersBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   filtersContent: {
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flexGrow: 1,
-    justifyContent: 'space-evenly',
+    justifyContent: 'space-around',
+    paddingVertical: 6,
+    paddingHorizontal: 1,
   },
-  listContent: { 
+  listContent: {
+    flex: 1,
     paddingHorizontal: 16,
-    paddingBottom: 30 
+    paddingBottom: 30,
   },
 });
 

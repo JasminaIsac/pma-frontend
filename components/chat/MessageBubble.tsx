@@ -4,17 +4,21 @@ import { colors, textPresets } from "@theme/index";
 import { Message } from "schemas";
 import { AttachmentList } from "./AttachmentList";
 import { MentionText } from "./MentionText";
+import { useTranslation } from "react-i18next";
 
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   onAvatarPress?: (userId: string) => void;
+  onLongPress?: (message: Message) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn, onAvatarPress }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn, onAvatarPress, onLongPress }) => {
+  const { t } = useTranslation();
   const hasText = message.message && message.message.trim().length > 0;
   const hasAttachments = message.attachments && message.attachments.length > 0;
   const mentions = message.mentions ?? [];
+  const isDeleted = !!message.deletedAt;
 
   return (
     <View style={[styles.container, isOwn ? styles.own : styles.other]}>
@@ -36,25 +40,39 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn, on
         </TouchableOpacity>
       )}
 
-      <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+      <TouchableOpacity
+        style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther, isDeleted && styles.bubbleDeleted]}
+        onLongPress={() => !isDeleted && onLongPress?.(message)}
+        delayLongPress={400}
+        activeOpacity={onLongPress && !isDeleted ? 0.7 : 1}
+        disabled={!onLongPress || isDeleted}
+      >
         {!isOwn && (
           <Text style={[textPresets.bodySmallBold, { color: colors.text.secondary }]}>
             {message.sender.name}
           </Text>
         )}
 
-        {hasText && (
-          <MentionText text={message.message} mentions={mentions} isOwn={isOwn} />
-        )}
-
-        {hasAttachments && (
-          <AttachmentList attachments={message.attachments} />
+        {isDeleted ? (
+          <Text style={styles.deletedText}>🗑 {t('conversations.messageDeleted')}</Text>
+        ) : (
+          <>
+            {hasText && (
+              <MentionText text={message.message} mentions={mentions} isOwn={isOwn} />
+            )}
+            {hasAttachments && (
+              <AttachmentList attachments={message.attachments} />
+            )}
+          </>
         )}
 
         <Text style={[textPresets.caption, { color: colors.text.secondary, alignSelf: 'flex-end' }]}>
           {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {message.updatedAt && message.updatedAt !== message.createdAt && !isDeleted && (
+            <Text style={styles.editedLabel}> · {t('conversations.edited')}</Text>
+          )}
         </Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -100,5 +118,18 @@ const styles = StyleSheet.create({
   bubbleOther: {
     backgroundColor: colors.background.primary,
     borderColor: colors.text.secondary,
+  },
+  bubbleDeleted: {
+    opacity: 0.6,
+  },
+  deletedText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: colors.text.secondary,
+  },
+  editedLabel: {
+    fontSize: 10,
+    color: colors.text.secondary,
+    fontStyle: 'italic',
   },
 });

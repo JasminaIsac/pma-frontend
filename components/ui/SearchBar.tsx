@@ -35,6 +35,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ value, onChangeText, place
 const styles = StyleSheet.create({
   container: {
     padding: 8,
+    marginHorizontal: 6,
     backgroundColor: colors.background.primary,
   },
   searchSection: {

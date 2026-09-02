@@ -1,8 +1,9 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import { colors, textPresets } from '@theme/index';
 import { TaskPriority, TaskStatus, TaskWithRelations, ID } from 'schemas';
 import { Tag } from '../ui';
+import { formatDateParts } from '@utils/dateHelpers';
 
 interface TaskCardProps {
   item: TaskWithRelations;
@@ -10,20 +11,15 @@ interface TaskCardProps {
 
 export const TaskCard = ({ item } : TaskCardProps) => {
   const router = useRouter();
-  const deadline = item.deadline ? new Date(item.deadline) : null;
-
-  const formatDate = (date: Date) => {
-    if (!date) return { day: '', month: '', year: '' };
-    const day = date.getDate();
-    const month = date.toLocaleString('en-CA', { month: 'short' });
-    const year = date.getFullYear();
-    return { day, month, year };
-  };
-
-  const { day, month, year } = formatDate(deadline || new Date());
+  const segments = useSegments();
+  const { day, month, year } = formatDateParts(item.deadline);
 
   const handleTaskPress = (taskId: ID | string) => {
-    router.push({ pathname: '/(tasks)/view/[id]', params: { id: taskId } });
+    const inProjects = (segments as string[]).includes('(projects)');
+    const pathname = inProjects
+      ? '/(tabs)/(projects)/task/[id]'
+      : '/(tabs)/(dashboard)/(tasks)/view/[id]';
+    router.push({ pathname: pathname as any, params: { id: taskId } });
   };
 
   const getPriorityTagData = (priority?: TaskPriority) => {

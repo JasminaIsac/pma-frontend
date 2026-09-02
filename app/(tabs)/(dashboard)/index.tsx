@@ -1,22 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useMaxStackDepth } from '@hooks/useMaxStackDepth';
 import { useProjectsCursor } from '@hooks/queries/useProjects';
 import { colors, textPresets } from '@theme/index';
 import { LoadingIndicator, ProjectsList, TodayProgress } from '@components/index';
-import { Project } from 'schemas';
+import { useTranslation } from 'react-i18next';
 
 export default function Dashboard(): React.ReactElement {
+  useMaxStackDepth();
   const { data, isLoading, isError } = useProjectsCursor(5);
-  const [projects, setProjects] = useState<Project[]>([]);
   const router = useRouter();
+  const { t } = useTranslation();
 
-  useEffect(() => {
-    if (data) {
-      const proj = data?.pages.flatMap((page: { items: any; }) => page.items) ?? [];
-      setProjects(proj);
-    }
-  }, [data]);
+  const projects = useMemo(
+    () => data?.pages.flatMap((page: { items: any }) => page.items) ?? [],
+    [data]
+  );
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -25,7 +25,7 @@ export default function Dashboard(): React.ReactElement {
   if (isError) {
     return (
       <View style={styles.fullScreenCenter}>
-        <Text style={{ color: colors.text.error }}>Failed to load projects.</Text>
+        <Text style={{ color: colors.text.error }}>{t('dashboard.failedLoad')}</Text>
       </View>
     );
   }
@@ -34,11 +34,11 @@ export default function Dashboard(): React.ReactElement {
     <View style={styles.container}>
       <TodayProgress />
       <Text style={[textPresets.headerLarge, { paddingLeft: 8, marginBottom: 12 }]}>
-        Continue with your projects:
+        {t('dashboard.continueProjects')}
       </Text>
       <ProjectsList
         projects={projects}
-        onPress={(p) => router.push({ pathname: '/(tabs)/(dashboard)/view/[id]', params: { id: p.id } })}
+        onPress={(p) => router.push({ pathname: '/(tabs)/(dashboard)/project/[id]', params: { id: p.id } })}
       />
     </View>
   );

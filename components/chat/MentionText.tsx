@@ -9,10 +9,10 @@ import { MentionData } from 'schemas';
  * (folosit în lista de conversații, notificări etc.)
  */
 export const formatMentionPreview = (text: string, mentions: MentionData[]): string => {
-  if (!text || !mentions || mentions.length === 0) return text;
+  if (!text || !text.includes('[project:')) return text;
 
   const mentionMap = new Map<string, string>();
-  mentions.forEach((m) => mentionMap.set(m.id, m.name));
+  mentions?.forEach((m) => mentionMap.set(m.id, m.name));
 
   return text.replace(/\[project:([a-f0-9-]{36})\]/g, (_full, id) => {
     const name = mentionMap.get(id);

@@ -16,7 +16,7 @@ export const UserDetails: React.FC<UserDetailsProps> = ({ user, customStyles, te
   const infoColor = textColor ?? colors.darkBlue;
   const locationColor = textColor ?? colors.darkOrange;
 
-  const statusConfig = colors.userStatus[user.status];
+  const statusConfig = colors.userStatus[user.status] ?? { color: '#6c757d', label: user.status ?? '' };
 
   return (
     <View style={[styles.headerContainer, customStyles]}>

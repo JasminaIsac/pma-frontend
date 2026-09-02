@@ -76,10 +76,8 @@ export const useAddProject = () => {
       const res = await createProject(data);
       return res as unknown as Project;
     },
-    onSuccess: (newProject) => {
-      // Actualizează lista projects
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['projects', 'cursor'] });
     },
   });
 };
@@ -94,7 +92,6 @@ export const useUpdateProject = () => {
     onSuccess: (res) => {
       const updatedProject = res as unknown as Project;
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['projects', 'cursor'] });
       queryClient.invalidateQueries({ queryKey: ['project', updatedProject.id] });
     },
   });
@@ -108,7 +105,6 @@ export const useDeleteProject = () => {
     mutationFn: (id: ID) => deleteProject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['projects', 'cursor'] });
     },
   });
 };

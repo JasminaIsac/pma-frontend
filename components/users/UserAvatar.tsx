@@ -4,6 +4,7 @@ import { colors } from "@theme/index";
 import { useAvatarPicker } from '@hooks/useAvatarPicker';
 import { useMe } from "@hooks/queries/useMe";
 import { LoadingIndicator, CustomButton } from "../ui";
+import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -14,6 +15,7 @@ interface UserAvatarProps {
 }
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({ size = 140, uri, name = "" }) => {
+  const { t } = useTranslation();
   const { data: user, isLoading } = useMe();
   const { pickImage, takePhoto, uploadImage, removeAvatar, loading } = useAvatarPicker();
 
@@ -57,8 +59,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ size = 140, uri, name = 
     const hasAvatar = !!currentAvatarUri;
 
     if (Platform.OS === 'ios') {
-      const options = ['Cancel', 'Take Photo', 'Choose from Gallery'];
-      if (hasAvatar) options.push('Remove Photo');
+      const options = [t('common.cancel'), t('conversations.takePhoto'), t('conversations.chooseGallery')];
+      if (hasAvatar) options.push(t('users.deleteAvatar'));
 
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -68,7 +70,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ size = 140, uri, name = 
         },
         async (buttonIndex: number) => {
           let selectedUri: string | null = null;
-          
+
           if (buttonIndex === 1) selectedUri = await takePhoto();
           if (buttonIndex === 2) selectedUri = await pickImage();
           if (hasAvatar && buttonIndex === 3) {
@@ -84,36 +86,36 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ size = 140, uri, name = 
       );
     } else {
       const buttons = [
-        { 
-          text: 'Take Photo', 
-          onPress: async () => { 
-            const selectedUri = await takePhoto(); 
-            if (selectedUri) await handleUpload(selectedUri); 
-          } 
+        {
+          text: t('conversations.takePhoto'),
+          onPress: async () => {
+            const selectedUri = await takePhoto();
+            if (selectedUri) await handleUpload(selectedUri);
+          }
         },
-        { 
-          text: 'Choose from Gallery', 
-          onPress: async () => { 
-            const selectedUri = await pickImage(); 
-            if (selectedUri) await handleUpload(selectedUri); 
-          } 
+        {
+          text: t('conversations.chooseGallery'),
+          onPress: async () => {
+            const selectedUri = await pickImage();
+            if (selectedUri) await handleUpload(selectedUri);
+          }
         },
       ];
 
       if (hasAvatar) {
         buttons.push({
-          text: 'Delete Avatar',
+          text: t('users.deleteAvatar'),
           onPress: async () => {
             const success = await removeAvatar();
             if (success) {
-              setExpanded(false); 
+              setExpanded(false);
               setShowOverlay(false);
             }
           }
         });
       }
 
-      Alert.alert('Change Avatar', 'Choose an option', buttons, { cancelable: true });
+      Alert.alert(t('users.changeAvatar'), t('conversations.chooseOption'), buttons, { cancelable: true });
     }
   }, [pickImage, takePhoto, handleUpload, removeAvatar, currentAvatarUri, loading]);
   
@@ -140,13 +142,13 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ size = 140, uri, name = 
             <>
               <TouchableOpacity style={styles.overlay} onPress={handleOverlayPress} activeOpacity={1} />
               <View style={styles.changeButtonContainer}>
-                <CustomButton 
-                   title={loading ? "Processing..." : "Change Avatar"} 
-                   type="primary" 
-                   onPress={handleChangeAvatar} 
-                   disabled={loading} 
+                <CustomButton
+                   title={loading ? t('users.processingAvatar') : t('users.changeAvatar')}
+                   type="primary"
+                   onPress={handleChangeAvatar}
+                   disabled={loading}
                 />
-                <CustomButton title="Close" type="outline" onPress={() => setExpanded(false)} />
+                <CustomButton title={t('common.close')} type="outline" onPress={() => setExpanded(false)} />
               </View>
             </>
           )}

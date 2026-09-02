@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo } from "react";
-import { StyleSheet, View, Alert, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { ConfirmModal } from "@components/modals/ConfirmModal";
+import { useConfirmModal } from "@hooks/useConfirmModal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -8,42 +10,51 @@ import { colors } from "@theme/colors";
 import { CustomInput, LabeledPicker, CustomButton, SelectDeadlineInput, LoadingIndicator } from "@components/index";
 import { useTask, useUpdateTask, useDeleteTask } from "@hooks/queries/useTasks";
 import { useProject } from "@hooks/queries/useProjects";
-import { useAvailableProjectUsers } from "@hooks/queries/useProjectMembers";
+import { useProjectMembers } from "@hooks/queries/useProjectMembers";
 import { useToastNotification } from "@hooks/useToastNotification";
-import { TaskStatus, TaskPriority, UserRole, User } from "schemas";
+import { TaskPriority, UserRole } from "schemas";
+import { useTranslation } from "react-i18next";
 
-const taskSchema = z.object({
-  title: z.string().min(3, "Title is required"),
-  description: z.string().optional(),
-  status: z.nativeEnum(TaskStatus),
-  assignedTo: z.string().min(1, "Select a developer"),
-  priority: z.nativeEnum(TaskPriority),
-  deadline: z.string().optional(),
-});
-
-type TaskFormValues = z.infer<typeof taskSchema>;
+type TaskFormValues = {
+  name: string;
+  description?: string;
+  assignedTo: string;
+  priority: TaskPriority;
+  deadline?: string;
+};
 
 const EditTaskScreen: React.FC = () => {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
-  const { showSuccess, showError } = useToastNotification()
+  const { showSuccess, showError } = useToastNotification();
 
   const { data: task, isLoading: loadingTask, isError: taskError } = useTask(id || "");
-  const { data: project, isError: projectError } = useProject(task?.projectId || "");
-  const { data: availableDevs, isLoading:loadingDevs } = useAvailableProjectUsers(project?.id || "");
-  const availableDevelopers = useMemo(() => {
-    return availableDevs?.filter(dev => dev.role === UserRole.DEVELOPER) || [];
-  }, [availableDevs]);
+  const { data: project, isLoading: loadingProject, isError: projectError } = useProject(task?.projectId || "");
+  const { data: projectMembers, isLoading: loadingMembers } = useProjectMembers(project?.id || "");
+
+  const availableDevelopers = useMemo(
+    () => projectMembers?.filter(m => m.userRole === UserRole.DEVELOPER) ?? [],
+    [projectMembers]
+  );
 
   const { mutate: updateTaskMutate, isPending: updating } = useUpdateTask();
   const { mutate: deleteTaskMutate, isPending: deleting } = useDeleteTask();
+  const { confirm, modalProps: confirmModalProps } = useConfirmModal();
+
+  const taskSchema = useMemo(() => z.object({
+    name: z.string().min(3, t('validation.titleMinChars', { count: 3 })),
+    description: z.string().optional(),
+    assignedTo: z.string().min(1, t('validation.developerRequired')),
+    priority: z.nativeEnum(TaskPriority),
+    deadline: z.string().optional(),
+  }), [t]);
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<TaskFormValues>({
     defaultValues: {
-      title: "",
+      name: "",
       description: "",
-      status: TaskStatus.NEW,
       assignedTo: "",
       priority: TaskPriority.MEDIUM,
       deadline: "",
@@ -54,9 +65,8 @@ const EditTaskScreen: React.FC = () => {
   useEffect(() => {
     if (task) {
       reset({
-        title: task.name,
+        name: task.name,
         description: task.description ?? "",
-        status: task.status,
         assignedTo: task.assignedTo ?? "",
         priority: task.priority,
         deadline: task.deadline ?? "",
@@ -64,64 +74,53 @@ const EditTaskScreen: React.FC = () => {
     }
   }, [task, reset]);
 
-  // Handle errors with useEffect to avoid side effects in render
   useEffect(() => {
     if (taskError) {
-      showError("Error", "Failed to load task");
+      showError("Error", t('tasks.failedLoadTask'));
       router.back();
     }
-  }, [taskError, showError, router]);
+  }, [taskError]);
 
   useEffect(() => {
     if (projectError) {
-      showError("Error", "Failed to load project details");
+      showError("Error", t('tasks.failedLoadProject'));
     }
-  }, [projectError, showError]);
+  }, [projectError]);
 
-
-  const onSave = async (data: TaskFormValues) => {
+  const onSave = (data: TaskFormValues) => {
     if (!task) return;
     updateTaskMutate(
       { id: task.id, data },
       {
         onSuccess: () => {
-          showSuccess("Success", "Task updated successfully");
+          showSuccess("Success", t('tasks.updated'));
           router.back();
         },
-        onError: () => showError("Error", "Failed to update task"),
+        onError: () => showError("Error", t('tasks.failedUpdate')),
       }
     );
   };
 
-  const onDelete = async () => {
+  const onDelete = () => {
     if (!task) return;
-    Alert.alert("Confirm", "Are you sure you want to delete this task?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          deleteTaskMutate(task.id, {
-            onSuccess: () => {
-              showSuccess("Deleted", "Task deleted successfully");
-              router.replace({ pathname: '/(tabs)/(dashboard)/view/[id]', params: { id: task.projectId } });
-            },
-            onError: () => showError("Error", "Failed to delete task"),
-          });
-        },
-      },
-    ]);
+    confirm({
+      title: t('tasks.deleteTask'),
+      message: t('tasks.deleteConfirm'),
+      confirmLabel: t('common.delete'),
+      onConfirm: () =>
+        deleteTaskMutate(task.id, {
+          onSuccess: () => {
+            showSuccess('Success', t('tasks.deleted'));
+            router.back();
+            router.back();
+          },
+          onError: () => showError('Error', t('tasks.failedDelete')),
+        }),
+    });
   };
 
-  // Check loading states FIRST
-  if (loadingTask || loadingDevs) {
-    return <LoadingIndicator />
-  }
-
-  // Check if task exists AFTER loading
-  if (!task) {
-    return null;
-  }
+  if (loadingTask || loadingProject || loadingMembers) return <LoadingIndicator />;
+  if (!task) return null;
 
   return (
     <KeyboardAvoidingView
@@ -132,40 +131,28 @@ const EditTaskScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
         <CustomInput
           control={control}
-          name="title"
-          label="Title"
-          placeholder="Task Name"
-          error={errors.title?.message}
+          name="name"
+          label={t('tasks.name')}
+          placeholder={t('tasks.name')}
+          error={errors.name?.message}
         />
 
         <CustomInput
           control={control}
           name="description"
-          label="Description"
-          placeholder="Task Description"
+          label={t('tasks.description')}
+          placeholder={t('tasks.description')}
           multiline
           error={errors.description?.message}
         />
 
-        <LabeledPicker
-          control={control}
-          name="status"
-          label="Status"
-          placeholder="Select status"
-          items={[
-            { label: "Returned", value: TaskStatus.RETURNED },
-            { label: "Completed", value: TaskStatus.COMPLETED },
-          ]}
-          error={errors.status?.message}
-        />
-
-        {availableDevelopers?.length > 0 && (
+        {availableDevelopers.length > 0 && (
           <LabeledPicker
             control={control}
             name="assignedTo"
-            label="Assigned to"
-            placeholder="Select developer"
-            items={availableDevelopers.map((dev: User) => ({ label: dev.name, value: dev.id }))}
+            label={t('tasks.assignedTo')}
+            placeholder={t('tasks.selectDeveloper')}
+            items={availableDevelopers.map(m => ({ label: m.user.name, value: m.user.id }))}
             error={errors.assignedTo?.message}
           />
         )}
@@ -173,12 +160,12 @@ const EditTaskScreen: React.FC = () => {
         <LabeledPicker
           control={control}
           name="priority"
-          label="Priority"
-          placeholder="Select priority"
+          label={t('tasks.priority')}
+          placeholder={t('tasks.priority')}
           items={[
-            { label: "High", value: TaskPriority.HIGH },
-            { label: "Medium", value: TaskPriority.MEDIUM },
-            { label: "Low", value: TaskPriority.LOW },
+            { label: t('tasks.priorityHigh'), value: TaskPriority.HIGH },
+            { label: t('tasks.priorityMedium'), value: TaskPriority.MEDIUM },
+            { label: t('tasks.priorityLow'), value: TaskPriority.LOW },
           ]}
           error={errors.priority?.message}
         />
@@ -190,12 +177,13 @@ const EditTaskScreen: React.FC = () => {
         />
 
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <CustomButton title="Delete" type="delete" onPress={onDelete} style={{ flex: 1 }} disabled={deleting} />
-          <CustomButton title="Save" onPress={handleSubmit(onSave)} style={{ flex: 1 }} disabled={updating} />
+          <CustomButton title={t('common.delete')} type="delete" onPress={onDelete} style={{ flex: 1 }} disabled={deleting} />
+          <CustomButton title={t('common.save')} onPress={handleSubmit(onSave)} style={{ flex: 1 }} disabled={updating} />
         </View>
 
-        <CustomButton title="Cancel" type="secondary" onPress={() => router.back()} />
+        <CustomButton title={t('common.cancel')} type="secondary" onPress={() => router.back()} />
       </ScrollView>
+      <ConfirmModal {...confirmModalProps} />
     </KeyboardAvoidingView>
   );
 };

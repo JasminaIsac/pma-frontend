@@ -36,5 +36,5 @@ export const uploadAttachment = async (
     },
   );
 
-  return res.data;
+  return res as unknown as UploadAttachmentResponse;
 };

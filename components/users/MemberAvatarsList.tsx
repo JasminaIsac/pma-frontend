@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, textPresets } from '@theme/index';
-import { ProjectMember } from 'schemas';
 import { MemberAvatar } from './MemberAvatar';
 
+interface MemberWithUser {
+  id: string;
+  user: { name: string; avatarUrl?: string | null };
+}
+
 interface MemberAvatarsListProps {
-  members: ProjectMember[];
+  members: MemberWithUser[];
   size?: number;
   maxVisible?: number;
 }

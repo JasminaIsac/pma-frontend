@@ -2,22 +2,32 @@ import { useState, useMemo, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTasksByAssigneeId } from '@hooks/queries/useTasks';
+import { useTasks, useTasksByAssigneeId } from '@hooks/queries/useTasks';
 import { TaskList, DaysCarousel, CalendarModal, LoadingIndicator } from '@components/index';
 import { colors, textPresets } from '@theme/index';
 import { filterTasksByDate, getTaskCountsByDate, toISODate } from '@utils/index';
-import { TaskWithRelations } from 'schemas';
+import { TaskWithRelations, UserRole } from 'schemas';
 import { useMe } from '@hooks/queries/useMe';
+import { useTranslation } from 'react-i18next';
 
 const AllTasksScreen = () => {
+  const { t } = useTranslation();
   const { data: user, isLoading: userLoading } = useMe();
-  const { data: tasks = [], isLoading: tasksLoading, isError } = useTasksByAssigneeId(user?.id!);
+
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.ROOT;
+
+  const { data: allTasks = [], isLoading: allTasksLoading, isError: allTasksError } = useTasks(isAdmin);
+  const { data: myTasks = [], isLoading: myTasksLoading, isError: myTasksError } = useTasksByAssigneeId(
+    !isAdmin ? user?.id : undefined
+  );
+
+  const tasks = isAdmin ? allTasks : myTasks;
+  const tasksLoading = isAdmin ? allTasksLoading : myTasksLoading;
+  const isError = isAdmin ? allTasksError : myTasksError;
 
   const navigation = useNavigation();
 
-  const [selectedDate, setSelectedDate] = useState<string>(
-    toISODate(new Date())
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(toISODate(new Date()));
   const [isCalendarVisible, setCalendarVisible] = useState<boolean>(false);
 
   const filteredTasks = useMemo<TaskWithRelations[]>(() => {
@@ -27,7 +37,7 @@ const AllTasksScreen = () => {
   const taskCounts = useMemo(() => {
     return getTaskCountsByDate(tasks);
   }, [tasks]);
-  
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -38,15 +48,20 @@ const AllTasksScreen = () => {
     });
   }, [navigation]);
 
-  if(userLoading || tasksLoading) return <LoadingIndicator />
+  if (userLoading || tasksLoading) return <LoadingIndicator />;
 
   if (isError) {
     return (
       <View style={styles.center}>
-        <Text style={textPresets.noData}>Failed to load tasks.</Text>
+        <Text style={textPresets.noData}>{t('tasks.failedLoad')}</Text>
       </View>
     );
   }
+
+  const dateLabel = new Date(selectedDate).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
     <View style={styles.container}>
@@ -58,13 +73,8 @@ const AllTasksScreen = () => {
 
       <View style={styles.taskSection}>
         <Text style={[textPresets.headerLarge, { marginVertical: 10 }]}>
-          Tasks for{' '}
-          <Text style={{ color: colors.text.accentOrange }}>
-            {new Date(selectedDate).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-            })}
-          </Text>
+          {t('tasks.tasksFor')}{' '}
+          <Text style={{ color: colors.text.accentOrange }}>{dateLabel}</Text>
         </Text>
 
         <TaskList tasks={filteredTasks} />
@@ -85,7 +95,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   taskSection: {
-    padding: 16
+    padding: 16,
   },
   center: {
     flex: 1,

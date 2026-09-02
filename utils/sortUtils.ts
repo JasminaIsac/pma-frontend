@@ -8,6 +8,7 @@ import {
   ProjectMember,
   User,
   UserRole,
+  UserStatus,
   ProjectStatus,
   Conversation,
 } from 'schemas';
@@ -64,6 +65,13 @@ const roleOrder: Record<string, number> = {
   admin: 2,
   project_manager: 3,
   developer: 4,
+};
+
+const userStatusOrder: Record<string, number> = {
+  [UserStatus.ACTIVE]: 1,
+  [UserStatus.INACTIVE]: 2,
+  [UserStatus.BANNED]: 3,
+  [UserStatus.DELETED]: 4,
 };
 
 /* ────────────────────────────────
@@ -218,6 +226,9 @@ export const sortProjectMembers = (
 
 export const sortUsersByRole = (users: User[]): User[] => {
   return [...users].sort((a, b) => {
+    const statusA = userStatusOrder[a.status] ?? 99;
+    const statusB = userStatusOrder[b.status] ?? 99;
+    if (statusA !== statusB) return statusA - statusB;
     const roleA = roleOrder[a.role?.toLowerCase() ?? ''] ?? 99;
     const roleB = roleOrder[b.role?.toLowerCase() ?? ''] ?? 99;
     return roleA - roleB;
